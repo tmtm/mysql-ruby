@@ -1,0 +1,130 @@
+# $Id: README,v 1.4 1999/06/16 17:43:51 tommy Exp $
+
+MySQL Ruby Module ver2.1.6
+
+This is MySQL Ruby API. This have same function as C API.
+
+[Requirement]
+
+* MySQL 3.22.15
+* Ruby 1.2.5 or 1.3.4
+* gcc 2.8.1
+
+It may be made with other version but not verified.
+
+[Install]
+
+Check MYSQLDIR, $CFLAGS, $LDFLAGS, $libs in extconf.rb, and do:
+
+	% ruby extconf.rb
+	% make
+	% make install
+	% cp mysql-compat.rb /usr/local/lib/ruby	# optional
+
+[Usage]
+
+The method name is basically same as C API but no need 'mysql_'
+prefix. For detail of usage of method, please see MySQL manual.
+
+If an error occured in method, it raise MysqlError exception.
+
+require "mysql"
+	loading mysql module.
+
+require "mysql-compat"
+	for ver1.0 compatibility.
+
+[Mysql class]
+
+ CLASS METHODS
+    real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
+	alias: connect(), new()
+    escape_string(str)
+	alias: quote()
+    get_client_info()
+	alias: client_info()
+
+ OBJECT METHODS
+    affected_rows()
+    close()
+    create_db(db)
+    drop_db(db)
+    errno()
+    error()
+    get_host_info()
+	alias: host_info()
+    get_proto_info()
+	alias: proto_info()
+    get_server_info()
+	alias: server_info()
+    info()
+    insert_id()
+    kill(id)
+    list_dbs(db=nil)
+    list_fields(table, field=nil)
+    list_processes()
+    list_tables(table=nil)
+    ping()
+    query(q)
+    refresh(r)
+    reload()
+    select_db(db)
+    shutdown()
+    stat()
+    store_result()
+    thread_id()
+    use_result()
+
+ OBJECT VARIABLES
+    query_with_result
+	If true, query() do also store_result() and return MysqlRes
+	object.  Default is true.
+
+[MysqlRes class]
+
+ CLASS METHODS
+    data_seek(offset)
+    fetch_field()
+    fetch_fields()
+    fetch_field_direct(fieldnr)
+    fetch_lengths()
+    fetch_row()
+    fetch_hash(with_table=false)
+    field_seek(offset)
+    field_tell()
+    num_fields()
+    num_rows()
+    row_seek(offset)
+    row_tell()
+
+ ITERATER
+    each() {|x| ...}
+	'x' is array of column value.
+    each_hash(with_table=false) {|x| ...}
+	'x' is hash of column value, and the key is column name.
+
+[MysqlField class]
+
+ OBJECT VARIABLES (read only)
+    name
+    table
+    def
+    type
+    length
+    max_length
+    flags
+    decimals
+
+ OBJECT METHODS
+    hash()
+
+[MysqlError class]
+
+ OBJECT VARIABLES (read only)
+    error
+    errno
+
+[Author]
+
+  e-mail: TOMITA Masahiro <tommy@tmtm.org>
+  http://www.tmtm.org/mysql/

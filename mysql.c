@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.12 1999/06/12 16:07:10 tommy Exp $
+ *	$Id: mysql.c,v 1.13 1999/06/16 17:43:42 tommy Exp $
  */
 
 #include "ruby.h"
@@ -406,8 +406,12 @@ static VALUE data_seek(VALUE obj, VALUE offset)
 /*	make MysqlField object (internal)	*/
 static VALUE make_field_obj(MYSQL_FIELD* f)
 {
-    VALUE obj = obj_alloc(cMysqlField);
-    VALUE hash = hash_new();
+    VALUE obj;
+    VALUE hash;
+    if (f == NULL)
+	return Qnil;
+    obj = obj_alloc(cMysqlField);
+    hash = hash_new();
     if (f->name)
 	hash_aset(hash, str_new2("name"), str_new2(f->name));
     if (f->table)

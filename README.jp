@@ -1,14 +1,13 @@
-# $Id: README.jp,v 1.11 1999/06/12 16:10:29 tommy Exp $
+# $Id: README.jp,v 1.13 1999/06/16 17:43:51 tommy Exp $
 
-MySQL Ruby Module ver2.1.5
+MySQL Ruby Module ver2.1.6
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
 ver1.x では Perl の古い MySQL インタフェースに関数名等を合わせていました
 が、融通が効かないので、ver2.x では C API に合わせました。そのため、その
 ままでは ver1.x とは互換がありませんが、mysql-compat.rb を require すれ
-ば、ver1.x 用に作られたスクリプトでもでもそのまま使えるようになっていま
-す。
+ば、ver1.x 用に作られたスクリプトでもそのまま使えるようになっています。
 
 [必要なもの]
 
@@ -275,6 +274,9 @@ require "mysql-compat"
 
 [履歴]
 
+  1999-06-17	2.1.6
+	fetch_field で落ちることがあった。
+
   1999-06-12	2.1.5
 	Ruby 1.3.x 対応が中途半端だった。
 
@@ -315,5 +317,5 @@ require "mysql-compat"
 
 [作者]
 
-  e-mail: 民斗 <tommy@valley.ne.jp>
-  http://www.valley.ne.jp/~tommy/
+  e-mail: とみたまさひろ <tommy@tmtm.org>
+  http://www.tmtm.org/mysql/
