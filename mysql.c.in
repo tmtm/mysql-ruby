@@ -1,8 +1,9 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.1 2003/01/28 23:59:59 tommy Exp $
+ *	$Id: mysql.c.in,v 1.2 2003/08/09 15:45:29 tommy Exp $
  */
 
 #include "ruby.h"
+#include "version.h"
 #ifdef HAVE_MYSQL_H
 #include <mysql.h>
 #include <errmsg.h>
@@ -595,7 +596,7 @@ static VALUE query_with_result(VALUE obj)
 static VALUE query_with_result_set(VALUE obj, VALUE flag)
 {
     if (TYPE(flag) != T_TRUE && TYPE(flag) != T_FALSE)
-#ifndef str2cstr
+#if RUBY_VERSION_CODE < 160
 	TypeError("invalid type, required true or false.");
 #else
         rb_raise(rb_eTypeError, "invalid type, required true or false.");
@@ -660,7 +661,7 @@ static VALUE fetch_field_direct(VALUE obj, VALUE nr)
     max = mysql_num_fields(res);
     n = NUM2INT(nr);
     if (n >= max)
-#ifndef str2cstr
+#if RUBY_VERSION_CODE < 160
         Raise(eMysql, "%d: out of range (max: %d)", n, max-1);
 #else
         rb_raise(eMysql, "%d: out of range (max: %d)", n, max-1);

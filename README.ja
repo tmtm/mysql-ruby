@@ -1,6 +1,6 @@
-# $Id: README.ja,v 1.8 2003/02/23 01:46:30 tommy Exp $
+# $Id: README.ja,v 1.9 2003/08/09 15:48:30 tommy Exp $
 
-MySQL Ruby Module ver2.4.4
+MySQL Ruby Module ver2.4.5
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
@@ -346,6 +346,10 @@ require "mysql"
     例) MysqlError::CR_UNKNOWN_HOST
 
 [履歴]
+
+  2003-08-10	2.4.5
+    ・extconf.rb: MySQL 4.1 対応。
+    ・mysql.c.in: Ruby 1.8 対応。
 
   2003-02-23	2.4.4a
     ・extconf.rb の Ruby 1.8.0 対応。

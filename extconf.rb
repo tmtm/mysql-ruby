@@ -44,7 +44,7 @@ IO::foreach('confout') do |l|
   next unless l =~ /errmsg\.h|mysqld_error\.h/
   fn = l.split(/\"/)[1]
   IO::foreach(fn) do |m|
-    if m =~ /^#define\s+([CE]R_[A-Z_]+)/ then
+    if m =~ /^#define\s+([CE]R_[0-9A-Z_]+)/ then
       error_syms << $1
     end
   end
