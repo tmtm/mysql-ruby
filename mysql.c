@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.28 2001/12/02 07:57:09 tommy Exp $
+ *	$Id: mysql.c,v 1.32 2002/01/07 01:17:28 tommy Exp $
  */
 
 #include "ruby.h"
@@ -138,8 +138,7 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
 {
     VALUE host, user, passwd, db, port, sock, flag;
     char *h, *u, *p, *d, *s;
-    uint pp, f;
-    MYSQL my;
+    unsigned int pp, f;
     struct mysql* myp;
     VALUE obj;
 
@@ -159,18 +158,17 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
     pp = NILorINT(port);
     s = NILorSTRING(sock);
 
-#if MYSQL_VERSION_ID >= 32200
-    mysql_init(&my);
-    if (mysql_real_connect(&my, h, u, p, d, pp, s, f) == NULL)
-#elif MYSQL_VERSION_ID >= 32115
-    if (mysql_real_connect(&my, h, u, p, pp, s, f) == NULL)
-#else
-    if (mysql_real_connect(&my, h, u, p, pp, s) == NULL)
-#endif
-	mysql_raise(&my);
-
     obj = Data_Make_Struct(klass, struct mysql, 0, free_mysql, myp);
-    myp->handler = my;
+#if MYSQL_VERSION_ID >= 32200
+    mysql_init(&myp->handler);
+    if (mysql_real_connect(&myp->handler, h, u, p, d, pp, s, f) == NULL)
+#elif MYSQL_VERSION_ID >= 32115
+    if (mysql_real_connect(&myp->handler, h, u, p, pp, s, f) == NULL)
+#else
+    if (mysql_real_connect(&myp->handler, h, u, p, pp, s) == NULL)
+#endif
+	mysql_raise(&myp->handler);
+
     myp->connection = Qtrue;
     myp->query_with_result = Qtrue;
     rb_obj_call_init(obj, argc, argv);
@@ -213,7 +211,7 @@ static VALUE real_connect2(int argc, VALUE* argv, VALUE obj)
 {
     VALUE host, user, passwd, db, port, sock, flag;
     char *h, *u, *p, *d, *s;
-    uint pp, f;
+    unsigned int pp, f;
     MYSQL* m = GetHandler(obj);
     rb_scan_args(argc, argv, "07", &host, &user, &passwd, &db, &port, &sock, &flag);
     d = NILorSTRING(db);
@@ -324,6 +322,7 @@ static VALUE my_close(VALUE obj)
     return obj;
 }
 
+#if MYSQL_VERSION_ID < 40000
 /*	create_db(db)	*/
 static VALUE create_db(VALUE obj, VALUE db)
 {
@@ -341,6 +340,7 @@ static VALUE drop_db(VALUE obj, VALUE db)
 	mysql_raise(m);
     return obj;
 }
+#endif
 
 #if MYSQL_VERSION_ID >= 32332
 /*	dump_debug_info()	*/
@@ -922,8 +922,10 @@ void Init_mysql(void)
     rb_define_method(cMysql, "character_set_name", character_set_name, 0);
 #endif
     rb_define_method(cMysql, "close", my_close, 0);
+#if MYSQL_VERSION_ID < 40000
     rb_define_method(cMysql, "create_db", create_db, 1);
     rb_define_method(cMysql, "drop_db", drop_db, 1);
+#endif
 #if MYSQL_VERSION_ID >= 32332
     rb_define_method(cMysql, "dump_debug_info", dump_debug_info, 0);
 #endif
@@ -976,8 +978,23 @@ void Init_mysql(void)
 #ifdef REFRESH_STATUS
     rb_define_const(cMysql, "REFRESH_STATUS", INT2NUM(REFRESH_STATUS));
 #endif
+#ifdef REFRESH_THREADS
+    rb_define_const(cMysql, "REFRESH_THREADS", INT2NUM(REFRESH_THREADS));
+#endif
+#ifdef REFRESH_SLAVE
+    rb_define_const(cMysql, "REFRESH_SLAVE", INT2NUM(REFRESH_SLAVE));
+#endif
+#ifdef REFRESH_MASTER
+    rb_define_const(cMysql, "REFRESH_MASTER", INT2NUM(REFRESH_MASTER));
+#endif
+#ifdef CLIENT_LONG_PASSWORD
+#endif
 #ifdef CLIENT_FOUND_ROWS
     rb_define_const(cMysql, "CLIENT_FOUND_ROWS", INT2NUM(CLIENT_FOUND_ROWS));
+#endif
+#ifdef CLIENT_LONG_FLAG
+#endif
+#ifdef CLIENT_CONNECT_WITH_DB
 #endif
 #ifdef CLIENT_NO_SCHEMA
     rb_define_const(cMysql, "CLIENT_NO_SCHEMA", INT2NUM(CLIENT_NO_SCHEMA));
@@ -987,6 +1004,27 @@ void Init_mysql(void)
 #endif
 #ifdef CLIENT_ODBC
     rb_define_const(cMysql, "CLIENT_ODBC", INT2NUM(CLIENT_ODBC));
+#endif
+#ifdef CLIENT_LOCAL_FILES
+    rb_define_const(cMysql, "CLIENT_LOCAL_FILES", INT2NUM(CLIENT_LOCAL_FILES));
+#endif
+#ifdef CLIENT_IGNORE_SPACE
+    rb_define_const(cMysql, "CLIENT_IGNORE_SPACE", INT2NUM(CLIENT_IGNORE_SPACE));
+#endif
+#ifdef CLIENT_CHANGE_USER
+    rb_define_const(cMysql, "CLIENT_CHANGE_USER", INT2NUM(CLIENT_CHANGE_USER));
+#endif
+#ifdef CLIENT_INTERACTIVE
+    rb_define_const(cMysql, "CLIENT_INTERACTIVE", INT2NUM(CLIENT_INTERACTIVE));
+#endif
+#ifdef CLIENT_SSL
+    rb_define_const(cMysql, "CLIENT_SSL", INT2NUM(CLIENT_SSL));
+#endif
+#ifdef CLIENT_IGNORE_SIGPIPE
+    rb_define_const(cMysql, "CLIENT_IGNORE_SIGPIPE", INT2NUM(CLIENT_IGNORE_SIGPIPE));
+#endif
+#ifdef CLIENT_TRANSACTIONS
+    rb_define_const(cMysql, "CLIENT_TRANSACTIONS", INT2NUM(CLIENT_TRANSACTIONS));
 #endif
 
     /* MysqlRes object method */
@@ -1062,6 +1100,12 @@ void Init_mysql(void)
 #ifdef TIMESTAMP_FLAG
     rb_define_const(cMysqlField, "TIMESTAMP_FLAG", INT2NUM(TIMESTAMP_FLAG));
 #endif
+#ifdef SET_FLAG
+    rb_define_const(cMysqlField, "SET_FLAG", INT2NUM(SET_FLAG));
+#endif
+#ifdef NUM_FLAG
+    rb_define_const(cMysqlField, "NUM_FLAG", INT2NUM(NUM_FLAG));
+#endif
 
     /* MysqlError object method */
     rb_define_method(eMysql, "error", error_error, 0);
@@ -1092,5 +1136,38 @@ void Init_mysql(void)
 #endif
 #ifdef CR_COMMANDS_OUT_OF_SYNC
     rb_define_const(eMysql, "CR_COMMANDS_OUT_OF_SYNC", INT2NUM(CR_COMMANDS_OUT_OF_SYNC));
+#endif
+#ifdef CR_NAMEDPIPE_CONNECTION
+    rb_define_const(eMysql, "CR_NAMEDPIPE_CONNECTION", INT2NUM(CR_NAMEDPIPE_CONNECTION));
+#endif
+#ifdef CR_NAMEDPIPEWAIT_ERROR
+    rb_define_const(eMysql, "CR_NAMEDPIPEWAIT_ERROR", INT2NUM(CR_NAMEDPIPEWAIT_ERROR));
+#endif
+#ifdef CR_NAMEDPIPEOPEN_ERROR
+    rb_define_const(eMysql, "CR_NAMEDPIPEOPEN_ERROR", INT2NUM(CR_NAMEDPIPEOPEN_ERROR));
+#endif
+#ifdef CR_NAMEDPIPESETSTATE_ERROR
+    rb_define_const(eMysql, "CR_NAMEDPIPESETSTATE_ERROR", INT2NUM(CR_NAMEDPIPESETSTATE_ERROR));
+#endif
+#ifdef CR_CANT_READ_CHARSET
+    rb_define_const(eMysql, "CR_CANT_READ_CHARSET", INT2NUM(CR_CANT_READ_CHARSET));
+#endif
+#ifdef CR_NET_PACKET_TOO_LARGE
+    rb_define_const(eMysql, "CR_NET_PACKET_TOO_LARGE", INT2NUM(CR_NET_PACKET_TOO_LARGE));
+#endif
+#ifdef CR_EMBEDDED_CONNECTION
+    rb_define_const(eMysql, "CR_EMBEDDED_CONNECTION", INT2NUM(CR_EMBEDDED_CONNECTION));
+#endif
+#ifdef CR_PROBE_SLAVE_STATUS
+    rb_define_const(eMysql, "CR_PROBE_SLAVE_STATUS", INT2NUM(CR_PROBE_SLAVE_STATUS));
+#endif
+#ifdef CR_PROBE_SLAVE_HOSTS
+    rb_define_const(eMysql, "CR_PROBE_SLAVE_HOSTS", INT2NUM(CR_PROBE_SLAVE_HOSTS));
+#endif
+#ifdef CR_PROBE_SLAVE_CONNECT
+    rb_define_const(eMysql, "CR_PROBE_SLAVE_CONNECT", INT2NUM(CR_PROBE_SLAVE_CONNECT));
+#endif
+#ifdef CR_PROBE_MASTER_CONNECT
+    rb_define_const(eMysql, "CR_PROBE_MASTER_CONNECT", INT2NUM(CR_PROBE_MASTER_CONNECT));
 #endif
 }

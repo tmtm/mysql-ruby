@@ -1,5 +1,5 @@
 # This is script to test for mysql-ruby module.
-# $Id: test.rb,v 1.4 2000/05/26 16:19:28 tommy Exp $
+# $Id: test.rb,v 1.5 2002/01/07 01:17:28 tommy Exp $
 #
 # Execute in mysql-ruby top directory.
 # Modify following $host, $user, $passwd and $db if needed.
@@ -26,7 +26,7 @@ begin
 ensure
   if $created
     begin
-      Mysql.new($host, $user, $passwd).drop_db $db
+      Mysql.new($host, $user, $passwd).query("drop database #{$db}")
     rescue
     end
   end

@@ -1,1 +1,2 @@
-$my.drop_db $db
+$my.query("drop database #{$db}")
+$created = false

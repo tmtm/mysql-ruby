@@ -1,6 +1,6 @@
 require 'mkmf'
 inc, lib = dir_config('mysql', '/usr/local')
-find_library('mysqlclient', 'mysql_connect', lib, "#{lib}/mysql") or exit 1
+find_library('mysqlclient', 'mysql_query', lib, "#{lib}/mysql") or exit 1
 # If you have error such as 'undefined symbol', delete '#' mark follow
 # lines:
 #have_library('m')

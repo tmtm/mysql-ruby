@@ -1,6 +1,6 @@
 MANIFEST
 README
-README.jp
+README.ja
 depend
 extconf.rb
 mysql.c

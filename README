@@ -1,6 +1,6 @@
-# $Id: README,v 1.14 2001/12/02 07:57:09 tommy Exp $
+# $Id: README,v 1.16 2002/01/07 01:22:51 tommy Exp $
 
-MySQL Ruby Module ver2.4.1
+MySQL Ruby Module ver2.4.2
 
 This is MySQL Ruby API. This have same function as C API.
 
@@ -162,6 +162,21 @@ require "mysql"
  OBJECT VARIABLES (read only)
     error
     errno
+
+[History]
+
+  2002-01-07	2.4.2
+    * for MySQL 4.0.
+    * change `uint' to `unsigned int' (for mswin).
+
+  2001-12-02	2.4.1
+    * remove `extern' (for Cygiwn).
+    * change option of extconf.rb.
+
+  2001-10-12	2.4.0
+    * for Ruby 1.7.
+    * add Mysql::debug(), Mysql#change_user(), Mysql#character_set_name(),
+      Mysql#dump_debug_info().
 
 [Author]
 
