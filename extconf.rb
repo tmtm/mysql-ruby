@@ -24,13 +24,16 @@ elsif have_header('mysql/mysql.h') then
 else
   exit 1
 end
-create_makefile("mysql")
 
 # make mysql constant
 File::open("conftest.c", "w") do |f|
   f.puts src
 end
-cpp = Config::expand sprintf(CPP, $CPPFLAGS, $CFLAGS, '')
+if defined? cpp_command then
+  cpp = Config::expand(cpp_command(''))
+else
+  cpp = Config::expand sprintf(CPP, $CPPFLAGS, $CFLAGS, '')
+end
 unless system "#{cpp} > confout" then
   exit 1
 end
@@ -58,3 +61,5 @@ IO::foreach('mysql.c.in') do |l|
     end
   end
 end
+
+create_makefile("mysql")

@@ -1,4 +1,4 @@
-# $Id: README.ja,v 1.7 2003/01/28 23:59:59 tommy Exp $
+# $Id: README.ja,v 1.8 2003/02/23 01:46:30 tommy Exp $
 
 MySQL Ruby Module ver2.4.4
 
@@ -346,6 +346,9 @@ require "mysql"
     例) MysqlError::CR_UNKNOWN_HOST
 
 [履歴]
+
+  2003-02-23	2.4.4a
+    ・extconf.rb の Ruby 1.8.0 対応。
 
   2003-01-29	2.4.4
     ・Mysql::OPT_LOCAL_INFILE を追加。

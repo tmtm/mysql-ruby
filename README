@@ -1,4 +1,4 @@
-# $Id: README,v 1.22 2003/01/28 23:59:59 tommy Exp $
+# $Id: README,v 1.23 2003/02/23 01:46:30 tommy Exp $
 
 MySQL Ruby Module ver2.4.4
 
@@ -39,6 +39,9 @@ This program is under Ruby's license.
     --with-mysql-dir=<dir>
 	Same as --with-mysql-include=<dir>/include,
 	--with-mysql-lib=<dir>/lib.
+
+    --with-mysql-config[=/path/to/mysql_config]
+	Get compile-parameter from mysql_config command.
 
 2nd:
 	% ruby -I. ./test.rb hostname user passwd
@@ -188,6 +191,9 @@ require "mysql"
     errno
 
 [History]
+
+  2003-02-23	2.4.4a
+    * make extconf.rb to correspond to Ruby 1.8.0
 
   2003-01-29	2.4.4
     * add Mysql::OPT_LOCAL_INFILE.
