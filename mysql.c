@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.13 1999/06/16 17:43:42 tommy Exp $
+ *	$Id: mysql.c,v 1.14 1999/09/23 17:21:48 tommy Exp $
  */
 
 #include "ruby.h"
@@ -455,7 +455,11 @@ static VALUE fetch_field_direct(VALUE obj, VALUE nr)
     unsigned int n = NUM2INT(nr);
     if (n >= max)
 	Raise(eMysql, "%d: out of range (max: %d)", n, max-1);
+#if MYSQL_VERSION_ID >= 32226
+    return make_field_obj(mysql_fetch_field_direct(res, n));
+#else
     return make_field_obj(&mysql_fetch_field_direct(res, n));
+#endif
 }
 
 /*	fetch_lengths()		*/
@@ -598,6 +602,15 @@ static VALUE field_hash(VALUE obj)
     return rb_iv_get(obj, "hash");
 }
 
+/*	inspect	*/
+static VALUE field_inspect(VALUE obj)
+{
+    VALUE n = hash_aref(field_hash(obj), str_new2("name"));
+    VALUE s = str_new(0, RSTRING(n)->len + 14);
+    sprintf(RSTRING(s)->ptr, "#<MysqlField:%s>", RSTRING(n)->ptr);
+    return s;
+}
+
 #define DefineMysqlFieldMemberMethod(m)\
 static VALUE field_##m(VALUE obj)\
 {return hash_aref(field_hash(obj), str_new2(#m));}
@@ -736,6 +749,7 @@ void Init_mysql(void)
     rb_define_method(cMysqlField, "flags", field_flags, 0);
     rb_define_method(cMysqlField, "decimals", field_decimals, 0);
     rb_define_method(cMysqlField, "hash", field_hash, 0);
+    rb_define_method(cMysqlField, "inspect", field_inspect, 0);
 
     /* MysqlField constant: TYPE */
     rb_define_const(cMysqlField, "TYPE_TINY", INT2NUM(FIELD_TYPE_TINY));
