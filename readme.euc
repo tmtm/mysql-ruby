@@ -1,0 +1,104 @@
+$Id: readme.euc,v 1.3 1998/08/13 17:19:10 tommy Exp $
+
+これは Ruby の MySQL インタフェースです。Perl の MySQL インタフェースを
+参考にしました。お問い合わせは tommy@valley.ne.jp まで。
+
+[インストール]
+
+extconf.rb 中の $CFLAGS, $LDFLAGS, $libs を確認し、次を行ってください。
+
+	% ruby extconf.rb
+	% make
+	% make install
+	% cp mysql.rb /usr/local/lib/ruby
+
+[使い方]
+
+以下のメソッド中でエラーが発生した場合は MysqlError 例外が発生します。
+
+require "mysql"
+	mysql モジュールをロードします。
+
+[Mysql クラス]
+
+  MySQL を操作するためのクラスです。
+
+ クラスメソッド
+    connect([host [,db [,user [,passwd]]]])
+    new([host [,db [,user [,passwd]]]])
+	mysqld に接続し、Mysql クラスオブジェクトを返します。
+
+	host が省略されるか nil の場合は localhost に接続します。
+	db が省略されるか nil の場合は、後で selectdb() を呼んでデータベー
+	スを選択する必要があります。
+	user が省略されるか nil の場合は UNIX ログイン名が使用されます。
+	passwd が省略されるか nil の場合はパスワードなしで接続を試みます。
+
+    quote(str)
+	insert, update 用に文字列をクオートします。
+
+ メソッド
+    selectdb(db)
+	データベースを選択します。
+
+    query(sql)
+	クエリ sql を実行します。MysqlRes クラスオブジェクトを返します。
+
+    listdbs()
+	データベース名の一覧を配列として返します。
+
+    listtables()
+	テーブル名の一覧を配列として返します。
+
+    listfields(table)
+	テーブル table の項目を MysqlRes クラスオブジェクトとして返します。
+
+    affectedrows()
+	影響を受けた行数を返します。
+
+    insertid()
+	最後に挿入された行の autoincrement 項目の値(数値)を返します。
+
+    shutdown()
+	mysqld を停止します。
+
+    createdb(db)
+	データベース db を作成します。
+
+    dropdb(db)
+	データベース db を破棄します。
+
+
+[MysqlRes クラス]
+
+  検索結果のクラスです。
+
+ メソッド
+    numrows()
+	検索件数を返します。
+
+    numfields()
+	項目数を返します。
+
+    fetchrow()
+	検索結果の１行を返します。次に呼ばれた時は次の行を返します。
+	戻り値は項目値の配列です。
+
+    fetchhash()
+	検索結果の１行を返します。次に呼ばれた時は次の行を返します。
+	戻り値は項目名をキーとした項目値のハッシュです。
+
+    fetchfields()
+	項目名の一覧を配列として返します。
+
+    dataseek(num)
+	次の fetchrow() や fetchhash() で返すデータを num 番目の行に設定
+	します。num は 0 から始まります。
+
+ イテレータ
+    each() {|x| 〜}
+	検索結果の各行ごとに {〜} を繰り返します。x は項目値の配列です。
+
+    each_hash() {|x| 〜}
+	検索結果の各行ごとに {〜} を繰り返します。x は項目名をキーとした
+	項目値のハッシュです。
