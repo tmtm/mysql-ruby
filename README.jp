@@ -1,6 +1,6 @@
-# $Id: README.jp,v 1.16 1999/09/27 15:46:38 tommy Exp $
+# $Id: README.jp,v 1.17 2000/05/18 16:58:22 tommy Exp $
 
-MySQL Ruby Module ver2.2.0
+MySQL Ruby Module ver2.2.1
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
@@ -19,11 +19,12 @@ ver1.x では Perl の古い MySQL インタフェースに関数名等を合わせていました
 
 [インストール]
 
-extconf.rb 中の MYSQLDIR, $CFLAGS, $LDFLAGS, $libs を確認し、次を行って
-ください。
+extconf.rb 中の MYSQLDIR, $CFLAGS, $LDFLAGS, $libs と test.rb 中の 
+$host, $user, $passwd を適当に変更し、次を行ってください。
 
 	% ruby extconf.rb
 	% make
+	% ruby -I. ./test.rb
 	% make install
 	% cp mysql-compat.rb /usr/local/lib/ruby	# 必須ではない
 
@@ -82,7 +83,7 @@ require "mysql-compat"
 
     real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
     connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
-	Mysql::real_connect() と同じです。Mysql::init で生成したオブジェ
+	Mysql::real_connect() と同じです。Mysql::init() で生成したオブジェ
 	クトをサーバに接続するために使用します。
 
     affected_rows()
@@ -293,6 +294,10 @@ require "mysql-compat"
 
 [履歴]
 
+  2000-05-10	2.2.1
+	データベースからのデータを「汚染された」文字列に変更。
+	テストスクリプト追加。
+
   1999-09-28	2.2.0
 	Mysql::init(), Mysql#options(), Mysql#real_connect() を追加。
 	Mysql#field_count を追加。
@@ -316,16 +321,16 @@ require "mysql-compat"
 	NULL値の項目があると fetch_hash/each_hash の動きがおかしかった。
 
   1999-02-01	2.1.2
-	Mysql::refresh() と Mysql::REFRESH_* を追加。
+	Mysql#refresh() と Mysql::REFRESH_* を追加。
 	MySQL 3.21.xx にも対応(させたつもり…)。
 
   1999-01-24	2.1.1
-	MysqlError::error(), MysqlError::errno() を追加。
+	MysqlError#error(), MysqlError#errno() を追加。
 	MysqlError::CR_* を追加。
 
   1999-01-17	2.1
 	fetch_hash, each_hash を C ソースに移動。
-	MysqlField::hash() を追加。
+	MysqlField#hash() を追加。
 	escape_string, get_client_info をオブジェクトメソッドとしても
 	使えるようにした。
 

@@ -1,6 +1,6 @@
-# $Id: README,v 1.6 1999/09/27 15:46:38 tommy Exp $
+# $Id: README,v 1.7 2000/05/18 16:58:19 tommy Exp $
 
-MySQL Ruby Module ver2.2.0
+MySQL Ruby Module ver2.2.1
 
 This is MySQL Ruby API. This have same function as C API.
 
@@ -13,10 +13,12 @@ It may be made with other version but not verified.
 
 [Install]
 
-Check MYSQLDIR, $CFLAGS, $LDFLAGS, $libs in extconf.rb, and do:
+Check MYSQLDIR, $CFLAGS, $LDFLAGS, $libs in extconf.rb and $host,
+$user, $passwd in test.rb. Then do:
 
 	% ruby extconf.rb
 	% make
+	% ruby -I. ./test.rb
 	% make install
 	% cp mysql-compat.rb /usr/local/lib/ruby	# optional
 

@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.19 1999/09/27 15:31:17 tommy Exp $
+ *	$Id: mysql.c,v 1.20 2000/05/09 18:12:04 tommy Exp $
  */
 
 #include "ruby.h"
@@ -71,9 +71,9 @@ static VALUE make_field_obj(MYSQL_FIELD* f)
     if (f == NULL)
 	return Qnil;
     obj = rb_obj_alloc(cMysqlField);
-    rb_iv_set(obj, "name", f->name? rb_str_freeze(rb_str_new2(f->name)): Qnil);
-    rb_iv_set(obj, "table", f->table? rb_str_freeze(rb_str_new2(f->table)): Qnil);
-    rb_iv_set(obj, "def", f->def? rb_str_freeze(rb_str_new2(f->def)): Qnil);
+    rb_iv_set(obj, "name", f->name? rb_str_freeze(rb_tainted_str_new2(f->name)): Qnil);
+    rb_iv_set(obj, "table", f->table? rb_str_freeze(rb_tainted_str_new2(f->table)): Qnil);
+    rb_iv_set(obj, "def", f->def? rb_str_freeze(rb_tainted_str_new2(f->def)): Qnil);
     rb_iv_set(obj, "type", INT2NUM(f->type));
     rb_iv_set(obj, "length", INT2NUM(f->length));
     rb_iv_set(obj, "max_length", INT2NUM(f->max_length));
@@ -152,7 +152,7 @@ static VALUE escape_string(VALUE klass, VALUE str)
 /*	client_info()	*/
 static VALUE client_info(VALUE klass)
 {
-    return rb_str_new2(mysql_get_client_info());
+    return rb_tainted_str_new2(mysql_get_client_info());
 }
 
 /*-------------------------------
@@ -271,7 +271,7 @@ static VALUE field_count(VALUE obj)
 /*	host_info()	*/
 static VALUE host_info(VALUE obj)
 {
-    return rb_str_new2(mysql_get_host_info(GetHandler(obj)));
+    return rb_tainted_str_new2(mysql_get_host_info(GetHandler(obj)));
 }
 
 /*	proto_info()	*/
@@ -283,14 +283,14 @@ static VALUE proto_info(VALUE obj)
 /*	server_info()	*/
 static VALUE server_info(VALUE obj)
 {
-    return rb_str_new2(mysql_get_server_info(GetHandler(obj)));
+    return rb_tainted_str_new2(mysql_get_server_info(GetHandler(obj)));
 }
 
 /*	info()		*/
 static VALUE info(VALUE obj)
 {
     char* p = mysql_info(GetHandler(obj));
-    return p? rb_str_new2(p): Qnil;
+    return p? rb_tainted_str_new2(p): Qnil;
 }
 
 /*	insert_id()	*/
@@ -325,7 +325,7 @@ static VALUE list_dbs(int argc, VALUE* argv, VALUE obj)
     n = mysql_num_rows(res);
     ret = rb_ary_new2(n);
     for (i=0; i<n; i++)
-	rb_ary_store(ret, i, rb_str_new2(mysql_fetch_row(res)[0]));
+	rb_ary_store(ret, i, rb_tainted_str_new2(mysql_fetch_row(res)[0]));
     mysql_free_result(res);
     return ret;
 }
@@ -370,7 +370,7 @@ static VALUE list_tables(int argc, VALUE* argv, VALUE obj)
     n = mysql_num_rows(res);
     ret = rb_ary_new2(n);
     for (i=0; i<n; i++)
-	rb_ary_store(ret, i, rb_str_new2(mysql_fetch_row(res)[0]));
+	rb_ary_store(ret, i, rb_tainted_str_new2(mysql_fetch_row(res)[0]));
     mysql_free_result(res);
     return ret;
 }
@@ -427,7 +427,7 @@ static VALUE my_stat(VALUE obj)
     char* s = mysql_stat(m);
     if (s == NULL)
 	mysql_raise(m);
-    return rb_str_new2(s);
+    return rb_tainted_str_new2(s);
 }
 
 /*	store_result()	*/
@@ -567,7 +567,7 @@ static VALUE fetch_row(VALUE obj)
 	return Qnil;
     ary = rb_ary_new2(n);
     for (i=0; i<n; i++)
-	rb_ary_store(ary, i, row[i]? rb_str_new(row[i], lengths[i]): Qnil);
+	rb_ary_store(ary, i, row[i]? rb_tainted_str_new(row[i], lengths[i]): Qnil);
     return ary;
 }
 
@@ -589,13 +589,13 @@ static VALUE fetch_hash2(VALUE obj, VALUE with_table)
 	if (row[i] == NULL)
 	    continue;
 	if (with_table == Qnil || with_table == Qfalse)
-	    col = rb_str_new2(fields[i].name);
+	    col = rb_tainted_str_new2(fields[i].name);
 	else {
-	    col = rb_str_new(fields[i].table, strlen(fields[i].table)+strlen(fields[i].name)+1);
+	    col = rb_tainted_str_new(fields[i].table, strlen(fields[i].table)+strlen(fields[i].name)+1);
 	    RSTRING(col)->ptr[strlen(fields[i].table)] = '.';
 	    strcpy(RSTRING(col)->ptr+strlen(fields[i].table)+1, fields[i].name);
 	}
-	rb_hash_aset(hash, col, row[i]? rb_str_new(row[i], lengths[i]): Qnil);
+	rb_hash_aset(hash, col, row[i]? rb_tainted_str_new(row[i], lengths[i]): Qnil);
     }
     return hash;
 }
