@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.22 2000/07/21 15:29:49 tommy Exp $
+ *	$Id: mysql.c,v 1.23 2000/09/02 17:34:47 tommy Exp $
  */
 
 #include "ruby.h"
@@ -240,6 +240,12 @@ static VALUE options(int argc, VALUE* argv, VALUE obj)
     return obj;
 }
 #endif
+
+/*	initialize()	*/
+static VALUE initialize(int argc, VALUE* argv, VALUE obj)
+{
+    return obj;
+}
 
 /*	affected_rows()	*/
 static VALUE affected_rows(VALUE obj)
@@ -825,6 +831,7 @@ void Init_mysql(void)
     rb_define_method(cMysql, "connect", real_connect2, -1);
     rb_define_method(cMysql, "options", options, -1);
 #endif
+    rb_define_method(cMysql, "initialize", initialize, -1);
     rb_define_method(cMysql, "escape_string", escape_string, 1);
     rb_define_method(cMysql, "quote", escape_string, 1);
     rb_define_method(cMysql, "client_info", client_info, 0);

@@ -1,6 +1,6 @@
-# $Id: README.jp,v 1.19 2000/07/21 15:50:08 tommy Exp $
+# $Id: README.jp,v 1.21 2000/09/02 17:35:05 tommy Exp $
 
-MySQL Ruby Module ver2.3.0
+MySQL Ruby Module ver2.3.1
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
@@ -299,9 +299,13 @@ require "mysql-compat"
 
 [履歴]
 
+  2000-09-02	2.3.1
+	Mysql#initialize() を追加(Ruby 1.6 対応)。
+
   2000-07-22	2.3.0
 	MysqlRes#free() を追加。
 	Mysql#initialize(), MysqlRes#initialize() を有効にした。
+	true を返していたメソッドを、self を返すようにした。
 
   2000-05-27	2.2.1a
 	test.rb を引数でパラメータを指定できるようにした。
