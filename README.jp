@@ -1,13 +1,8 @@
-# $Id: README.jp,v 1.22 2001/03/18 15:01:15 tommy Exp $
+# $Id: README.jp,v 1.23 2001/10/12 16:54:17 tommy Exp $
 
-MySQL Ruby Module ver2.3.2
+MySQL Ruby Module ver2.4
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
-
-ver1.x では Perl の古い MySQL インタフェースに関数名等を合わせていました
-が、融通が効かないので、ver2.x では C API に合わせました。そのため、その
-ままでは ver1.x とは互換がありませんが、mysql-compat.rb を require すれ
-ば、ver1.x 用に作られたスクリプトでもそのまま使えるようになっています。
 
 [必要なもの]
 
@@ -19,21 +14,47 @@ ver1.x では Perl の古い MySQL インタフェースに関数名等を合わせていました
 
 [インストール]
 
-extconf.rb 中の MYSQLDIR, $CFLAGS, $LDFLAGS, $libs を適当に変更し、次を
-行ってください。test.rb に与える hostname, user, passwd は MySQL サーバ
-と、そのサーバ上でデータベースを作成することができるユーザ／パスワードを
-指定してください。
+次を実行してください。
 
 	% ruby extconf.rb
 	% make
-	% ruby -I. ./test.rb hostname user passwd
-	# make install
-	# cp mysql-compat.rb /usr/local/lib/ruby	# 必須ではない
 
-  注意: gcc で make して、require "mysql" 実行時に __moddi3 や __divdi3
-	などが未解決シンボルになる場合は、$libs に
-	"/usr/local/lib/gcc-lib/<platform>/<gcc-version>/libgcc.a"
-	を追加して make してください。
+extconf.rb には次のオプションを指定できます。
+
+    --with-mysql-include-dir=dir
+	MySQL のへッダファイルの場所として /usr/local/include の代わりの
+	ディレクトリを指定します。
+
+    --with-mysql-lib-dir=dir
+	MySQL のライブラリの場所として /usr/local/lib の代わりのディレク
+	トリを指定します。
+
+次で簡単なテストができます。
+
+	% ruby -I. ./test.rb hostname user passwd
+
+test.rb に与える hostname, user, passwd は MySQL サーバと、そのサーバ上
+でデータベースを作成することができるユーザ／パスワードを指定してください。
+
+問題なければ、スーパーユーザでインストールしてください。
+
+	# make install
+
+注意:
+
+1. テスト時にライブラリ libmysqlclient が見つからないというエラーが出る
+   場合は、make 時にライブラリの場所を指定する必要があります。次のように
+   して make してみてください。
+	% env LD_RUN_PATH=<libmysqlclient.soの場所> make
+
+2. スタティックライブラリの libmysqlclient.a を使用する場合は、いくつか
+   ライブラリが必要になる場合があります。未解決シンボルのエラーが出る場
+   合は extconf.rb 中の $libs に "-lm -lz" を指定してみてください。
+
+3. gcc で make して、require "mysql" 実行時に __moddi3 や __divdi3などが
+   未解決シンボルになる場合は、$libs に
+   "/usr/local/lib/gcc-lib/<platform>/<gcc-version>/libgcc.a"を追加して 
+   make してください。
 
 [使い方]
 
@@ -76,6 +97,9 @@ require "mysql-compat"
     client_info()
 	クライアントバージョン情報の文字列を返します。
 
+    debug(str)
+	C API mysql_debug() と同じ。
+
  オブジェクトメソッド
 
     options(opt, val=nil)
@@ -91,6 +115,12 @@ require "mysql-compat"
     affected_rows()
 	影響された行数を返します。
 
+    change_user(user=nil, passwd=nil, db=nil)
+	接続ユーザを変更します。
+
+    character_set_name()
+	現在の文字セットを返します。
+
     close()
 	接続を切断します。
 
@@ -100,11 +130,19 @@ require "mysql-compat"
     drop_db(db)
 	データベースを破棄します。
 
+    dump_debug_info()
+	C API mysql_dump_debug_info() と同じ。
+
     errno()
 	エラー番号を返します。
 
     error()
 	エラーメッセージを返します。
+
+    escape_string(str)
+    quote(str)
+	insert, update 用に文字列をクオートします。
+	C API の mysql_real_escape_string() と同じ。
 
     field_count()
 	最後に実行されたクエリの項目数を返します。
@@ -299,75 +337,83 @@ require "mysql-compat"
 
 [履歴]
 
+  2001-10-12	2.4.0
+    ・Ruby 1.7 に対応。
+    ・Mysql::debug(), Mysql#change_user(), Mysql#character_set_name(),
+      Mysql#dump_debug_info() を追加。
+
+  2001-03-25	2.3.2a
+    ・t/50update.rb の判定方法を変更
+
   2001-03-19	2.3.2
-	一定数(20回) MysqlRes オブジェクトを生成したら、強制的に GC する
-	ようにした。
-	Mysql#escape_string(), Mysql#quote() は
-	mysql_real_escape_string() を使用するようにした。
+    ・一定数(20回) MysqlRes オブジェクトを生成したら、強制的に GC する
+      ようにした。
+    ・Mysql#escape_string(), Mysql#quote() は
+      mysql_real_escape_string() を使用するようにした。
 
   2000-09-02	2.3.1
-	Mysql#initialize() を追加(Ruby 1.6 対応)。
+    ・Mysql#initialize() を追加(Ruby 1.6 対応)。
 
   2000-07-22	2.3.0
-	MysqlRes#free() を追加。
-	Mysql#initialize(), MysqlRes#initialize() を有効にした。
-	true を返していたメソッドを、self を返すようにした。
+    ・MysqlRes#free() を追加。
+    ・Mysql#initialize(), MysqlRes#initialize() を有効にした。
+    ・true を返していたメソッドを、self を返すようにした。
 
   2000-05-27	2.2.1a
-	test.rb を引数でパラメータを指定できるようにした。
+    ・test.rb を引数でパラメータを指定できるようにした。
 
   2000-05-10	2.2.1
-	データベースからのデータを「汚染された」文字列に変更。
-	テストスクリプト追加。
+    ・データベースからのデータを「汚染された」文字列に変更。
+    ・テストスクリプト追加。
 
   1999-09-28	2.2.0
-	Mysql::init(), Mysql#options(), Mysql#real_connect() を追加。
-	Mysql#field_count を追加。
+    ・Mysql::init(), Mysql#options(), Mysql#real_connect() を追加。
+    ・Mysql#field_count を追加。
 
   1999-09-24	2.1.7
-	MySQL 3.22.26 に対応。
-	MysqlField#inspect() を追加。
+    ・MySQL 3.22.26 に対応。
+    ・MysqlField#inspect() を追加。
 
   1999-06-17	2.1.6
-	fetch_field で落ちることがあった。
+    ・fetch_field で落ちることがあった。
 
   1999-06-12	2.1.5
-	Ruby 1.3.x 対応が中途半端だった。
+    ・Ruby 1.3.x 対応が中途半端だった。
 
   1999-05-30	2.1.4
-	Ruby 1.3.x に対応。
+    ・Ruby 1.3.x に対応。
 
   1999-04-13	2.1.3
-	fetch_hash/each_hash の引数の数の定義が間違っていた。
-	fetch_hash/each_hash に true を指定した時の項目名が欠けていた。
-	NULL値の項目があると fetch_hash/each_hash の動きがおかしかった。
+    ・fetch_hash/each_hash の引数の数の定義が間違っていた。
+    ・fetch_hash/each_hash に true を指定した時の項目名が欠けていた。
+    ・NULL値の項目があると fetch_hash/each_hash の動きがおかしかった。
 
   1999-02-01	2.1.2
-	Mysql#refresh() と Mysql::REFRESH_* を追加。
-	MySQL 3.21.xx にも対応(させたつもり…)。
+    ・Mysql#refresh() と Mysql::REFRESH_* を追加。
+    ・MySQL 3.21.xx にも対応(させたつもり…)。
 
   1999-01-24	2.1.1
-	MysqlError#error(), MysqlError#errno() を追加。
-	MysqlError::CR_* を追加。
+    ・MysqlError#error(), MysqlError#errno() を追加。
+    ・MysqlError::CR_* を追加。
 
   1999-01-17	2.1
-	fetch_hash, each_hash を C ソースに移動。
-	MysqlField#hash() を追加。
-	escape_string, get_client_info をオブジェクトメソッドとしても
-	使えるようにした。
+    ・fetch_hash, each_hash を C ソースに移動。
+    ・MysqlField#hash() を追加。
+    ・escape_string, get_client_info をオブジェクトメソッドとしても
+      使えるようにした。
 
   1998-11-29	2.0.1
-	fetch_hash, each_hash に with_table 引数を追加。
-	やっぱり get_* メソッド名も C API と同じにした。
-	mysql-compat.rb を alias で書き直した。
-	Mysql の定数 CLIENT_* が MysqlField の定数になっていた。
+    ・fetch_hash, each_hash に with_table 引数を追加。
+    ・やっぱり get_* メソッド名も C API と同じにした。
+    ・mysql-compat.rb を alias で書き直した。
+    ・Mysql の定数 CLIENT_* が MysqlField の定数になっていた。
 
   1998-11-15	2.0
-	メソッド名を C API と同じにした。
-	C++ でも通るように書き直した。
+    ・メソッド名を C API と同じにした。
+    ・C++ でも通るように書き直した。
 
   1998-08-13	1.0
-	初期バージョン。
+    ・初期バージョン。
 
 [作者]
 

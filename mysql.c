@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.25 2000/03/04 16:41:21 tommy Exp $
+ *	$Id: mysql.c,v 1.26 2001/10/12 16:54:17 tommy Exp $
  */
 
 #include "ruby.h"
@@ -8,7 +8,7 @@
 
 #define GC_STORE_RESULT_LIMIT 20
 
-#ifndef str2cstr		/* ruby 1.2.x ? */
+#ifndef Qtrue		/* ruby 1.2.x ? */
 #define	Qtrue		TRUE
 #define	Qfalse		FALSE
 #define	rb_exc_raise	rb_raise
@@ -189,6 +189,15 @@ static VALUE client_info(VALUE klass)
     return rb_tainted_str_new2(mysql_get_client_info());
 }
 
+#if MYSQL_VERSION_ID >= 32332
+/*	my_debug(string)	*/
+static VALUE my_debug(VALUE obj, VALUE str)
+{
+    mysql_debug(STR2CSTR(str));
+    return obj;
+}
+#endif
+
 /*-------------------------------
  * Mysql object method
  */
@@ -249,6 +258,7 @@ static VALUE options(int argc, VALUE* argv, VALUE obj)
 }
 #endif
 
+#if MYSQL_VERSION_ID >= 32332
 /*	real_escape_string(string)	*/
 static VALUE real_escape_string(VALUE obj, VALUE str)
 {
@@ -259,6 +269,7 @@ static VALUE real_escape_string(VALUE obj, VALUE str)
     RSTRING(ret)->len = mysql_real_escape_string(m, RSTRING(ret)->ptr, RSTRING(str)->ptr, RSTRING(str)->len);
     return ret;
 }
+#endif
 
 /*	initialize()	*/
 static VALUE initialize(int argc, VALUE* argv, VALUE obj)
@@ -271,6 +282,31 @@ static VALUE affected_rows(VALUE obj)
 {
     return INT2NUM(mysql_affected_rows(GetHandler(obj)));
 }
+
+#if MYSQL_VERSION_ID >= 32303
+/*	change_user(user=nil, passwd=nil, db=nil)	*/
+static VALUE change_user(int argc, VALUE* argv, VALUE obj)
+{
+    VALUE user, passwd, db;
+    char *u, *p, *d;
+    MYSQL* m = GetHandler(obj);
+    rb_scan_args(argc, argv, "03", &user, &passwd, &db);
+    u = NILorSTRING(user);
+    p = NILorSTRING(passwd);
+    d = NILorSTRING(db);
+    if (mysql_change_user(m, u, p, d) != 0)
+	mysql_raise(m);
+    return obj;
+}
+#endif
+
+#if MYSQL_VERSION_ID >= 32321
+/*	character_set_name()	*/
+static VALUE character_set_name(VALUE obj)
+{
+    return rb_tainted_str_new2(mysql_character_set_name(GetHandler(obj)));
+}
+#endif
 
 /*	close()		*/
 static VALUE my_close(VALUE obj)
@@ -300,6 +336,17 @@ static VALUE drop_db(VALUE obj, VALUE db)
 	mysql_raise(m);
     return obj;
 }
+
+#if MYSQL_VERSION_ID >= 32332
+/*	dump_debug_info()	*/
+static VALUE dump_debug_info(VALUE obj)
+{
+    MYSQL* m = GetHandler(obj);
+    if (mysql_dump_debug_info(m) != 0)
+	mysql_raise(m);
+    return obj;
+}
+#endif
 
 /*	errno()		*/
 static VALUE my_errno(VALUE obj)
@@ -844,6 +891,9 @@ void Init_mysql(void)
     rb_define_singleton_method(cMysql, "quote", escape_string, 1);
     rb_define_singleton_method(cMysql, "client_info", client_info, 0);
     rb_define_singleton_method(cMysql, "get_client_info", client_info, 0);
+#if MYSQL_VERSION_ID >= 32332
+    rb_define_singleton_method(cMysql, "debug", my_debug, 1);
+#endif
 
     /* Mysql object method */
 #if MYSQL_VERSION_ID >= 32200
@@ -852,14 +902,28 @@ void Init_mysql(void)
     rb_define_method(cMysql, "options", options, -1);
 #endif
     rb_define_method(cMysql, "initialize", initialize, -1);
+#if MYSQL_VERSION_ID >= 32332
     rb_define_method(cMysql, "escape_string", real_escape_string, 1);
     rb_define_method(cMysql, "quote", real_escape_string, 1);
+#else
+    rb_define_method(cMysql, "escape_string", escape_string, 1);
+    rb_define_method(cMysql, "quote", escape_string, 1);
+#endif
     rb_define_method(cMysql, "client_info", client_info, 0);
     rb_define_method(cMysql, "get_client_info", client_info, 0);
     rb_define_method(cMysql, "affected_rows", affected_rows, 0);
+#if MYSQL_VERSION_ID >= 32303
+    rb_define_method(cMysql, "change_user", change_user, -1);
+#endif
+#if MYSQL_VERSION_ID >= 32321
+    rb_define_method(cMysql, "character_set_name", character_set_name, 0);
+#endif
     rb_define_method(cMysql, "close", my_close, 0);
     rb_define_method(cMysql, "create_db", create_db, 1);
     rb_define_method(cMysql, "drop_db", drop_db, 1);
+#if MYSQL_VERSION_ID >= 32332
+    rb_define_method(cMysql, "dump_debug_info", dump_debug_info, 0);
+#endif
     rb_define_method(cMysql, "errno", my_errno, 0);
     rb_define_method(cMysql, "error", my_error, 0);
     rb_define_method(cMysql, "field_count", field_count, 0);

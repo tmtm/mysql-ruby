@@ -1,6 +1,6 @@
-# $Id: README,v 1.12 2001/03/18 15:06:16 tommy Exp $
+# $Id: README,v 1.13 2001/10/12 16:54:16 tommy Exp $
 
-MySQL Ruby Module ver2.3.2
+MySQL Ruby Module ver2.4
 
 This is MySQL Ruby API. This have same function as C API.
 
@@ -13,13 +13,36 @@ It may be made with other version but not verified.
 
 [Install]
 
-Check MYSQLDIR, $CFLAGS, $LDFLAGS, $libs in extconf.rb then do:
-
+1st:
 	% ruby extconf.rb
 	% make
+
+  extconf.rb has following options:
+
+    --with-mysql-include-dir=dir
+        MySQL header directory. Default is /usr/local/include
+
+    --with-mysql-lib-dir=dir
+	MySQL library directory. Default is /usr/local/lib
+
+2nd:
 	% ruby -I. ./test.rb hostname user passwd
+
+3rd:
 	# make install
-	# cp mysql-compat.rb /usr/local/lib/ruby	# optional
+
+Note:
+
+1. If you get error like 'libmysqlclient not found' when testing, you
+   need to specify library directory on make.
+	% env LD_RUN_PATH=<libmysqlclient.so directory> make
+
+2. If you use libmysqlclient.a static library, some library may be
+   needed. Edit extconf.rb to add "-lm -lz" for $libs.
+
+3. If you get error like 'undefined symbol __moddi3 or __divdi3', edit
+   extconf.rb to add
+   "/usr/local/lib/gcc-lib/<platform>/<gcc-version>/libgcc.a" for $libs.
 
 [Usage]
 
@@ -45,17 +68,23 @@ require "mysql-compat"
 	alias: quote()
     get_client_info()
 	alias: client_info()
+    debug(str)
 
  OBJECT METHODS
     options(opt, val=nil)
     real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
 	alias: connect()
     affected_rows()
+    change_user(user=nil, passwd=nil, db=nil)
+    character_set_name()
     close()
     create_db(db)
+    dump_debug_info()
     drop_db(db)
     errno()
     error()
+    escape_string(str)
+	alias: quote()
     field_count()
     get_host_info()
 	alias: host_info()

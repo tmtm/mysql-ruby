@@ -1,5 +1,17 @@
 MANIFEST
+README
+README.jp
 depend
 extconf.rb
 mysql.c
 mysql-compat.rb
+test.rb
+t/00connect.rb
+t/10create_db.rb
+t/20create_table.rb
+t/30insert.rb
+t/40select.rb
+t/50update.rb
+t/60drop_table.rb
+t/70drop_db.rb
+t/80close.rb
