@@ -1,10 +1,12 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.23 2000/09/02 17:34:47 tommy Exp $
+ *	$Id: mysql.c,v 1.25 2000/03/04 16:41:21 tommy Exp $
  */
 
 #include "ruby.h"
 #include <mysql/mysql.h>
 #include <mysql/errmsg.h>
+
+#define GC_STORE_RESULT_LIMIT 20
 
 #ifndef str2cstr		/* ruby 1.2.x ? */
 #define	Qtrue		TRUE
@@ -38,6 +40,8 @@ VALUE cMysqlRes;
 VALUE cMysqlField;
 VALUE eMysql;
 
+static int store_result_count = 0;
+
 struct mysql {
     MYSQL handler;
     char connection;
@@ -60,8 +64,10 @@ static void free_mysql(struct mysql* my)
 
 static void free_mysqlres(struct mysql_res* resp)
 {
-    if (resp->freed == Qfalse)
+    if (resp->freed == Qfalse) {
 	mysql_free_result(resp->res);
+	store_result_count--;
+    }
     free(resp);
 }
 
@@ -80,6 +86,8 @@ static VALUE mysqlres2obj(MYSQL_RES* res)
     resp->res = res;
     resp->freed = Qfalse;
     rb_obj_call_init(obj, 0, NULL);
+    if (++store_result_count > GC_STORE_RESULT_LIMIT)
+	rb_gc();
     return obj;
 }
 
@@ -240,6 +248,17 @@ static VALUE options(int argc, VALUE* argv, VALUE obj)
     return obj;
 }
 #endif
+
+/*	real_escape_string(string)	*/
+static VALUE real_escape_string(VALUE obj, VALUE str)
+{
+    MYSQL* m = GetHandler(obj);
+    VALUE ret;
+    Check_Type(str, T_STRING);
+    ret = rb_str_new(0, (RSTRING(str)->len)*2+1);
+    RSTRING(ret)->len = mysql_real_escape_string(m, RSTRING(ret)->ptr, RSTRING(str)->ptr, RSTRING(str)->len);
+    return ret;
+}
 
 /*	initialize()	*/
 static VALUE initialize(int argc, VALUE* argv, VALUE obj)
@@ -692,6 +711,7 @@ static VALUE res_free(VALUE obj)
     check_free(obj);
     mysql_free_result(resp->res);
     resp->freed = Qtrue;
+    store_result_count--;
     return Qnil;
 }
 
@@ -832,8 +852,8 @@ void Init_mysql(void)
     rb_define_method(cMysql, "options", options, -1);
 #endif
     rb_define_method(cMysql, "initialize", initialize, -1);
-    rb_define_method(cMysql, "escape_string", escape_string, 1);
-    rb_define_method(cMysql, "quote", escape_string, 1);
+    rb_define_method(cMysql, "escape_string", real_escape_string, 1);
+    rb_define_method(cMysql, "quote", real_escape_string, 1);
     rb_define_method(cMysql, "client_info", client_info, 0);
     rb_define_method(cMysql, "get_client_info", client_info, 0);
     rb_define_method(cMysql, "affected_rows", affected_rows, 0);

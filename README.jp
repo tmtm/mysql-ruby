@@ -1,6 +1,6 @@
-# $Id: README.jp,v 1.21 2000/09/02 17:35:05 tommy Exp $
+# $Id: README.jp,v 1.22 2001/03/18 15:01:15 tommy Exp $
 
-MySQL Ruby Module ver2.3.1
+MySQL Ruby Module ver2.3.2
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
@@ -298,6 +298,12 @@ require "mysql-compat"
     例) MysqlError::CR_UNKNOWN_HOST
 
 [履歴]
+
+  2001-03-19	2.3.2
+	一定数(20回) MysqlRes オブジェクトを生成したら、強制的に GC する
+	ようにした。
+	Mysql#escape_string(), Mysql#quote() は
+	mysql_real_escape_string() を使用するようにした。
 
   2000-09-02	2.3.1
 	Mysql#initialize() を追加(Ruby 1.6 対応)。
