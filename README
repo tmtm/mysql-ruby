@@ -1,4 +1,4 @@
-# $Id: README,v 1.17 2002/09/09 17:02:17 tommy Exp $
+# $Id: README,v 1.18 2002/11/07 04:06:59 tommy Exp $
 
 MySQL Ruby Module ver2.4.3
 
@@ -168,6 +168,9 @@ require "mysql"
     errno
 
 [History]
+
+  2002-11-07	2.4.3a
+    * fix bug duplicating constant.
 
   2002-09-10	2.4.3
     * for error number with prefix ER_ .

@@ -1,10 +1,10 @@
 require 'mkmf'
 inc, lib = dir_config('mysql', '/usr/local')
-find_library('mysqlclient', 'mysql_query', lib, "#{lib}/mysql") or exit 1
 # If you have error such as 'undefined symbol', delete '#' mark follow
 # lines:
 #have_library('m')
 #have_library('z')
+find_library('mysqlclient', 'mysql_query', lib, "#{lib}/mysql") or exit 1
 if have_header('mysql.h') then
   src = '#include <errmsg.h>\n#include <mysqld_error.h>\n'
 elsif have_header('mysql/mysql.h') then
@@ -25,6 +25,7 @@ IO::foreach('confout') do |l|
   end
 end
 File::unlink 'confout'
+error_syms.uniq!
 
 system('cp -p mysql.c mysql.c.orig') unless File::exist? 'mysql.c.orig'
 newf = File::open('mysql.c', 'w')
