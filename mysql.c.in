@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.2 2003/08/09 15:45:29 tommy Exp $
+ *	$Id: mysql.c.in,v 1.7 2004/08/23 02:50:52 tommy Exp $
  */
 
 #include "ruby.h"
@@ -99,7 +99,7 @@ static VALUE mysqlres2obj(MYSQL_RES* res)
     return obj;
 }
 
-/*	make MysqlField object	*/
+/*	make Mysql::Field object	*/
 static VALUE make_field_obj(MYSQL_FIELD* f)
 {
     VALUE obj;
@@ -201,6 +201,14 @@ static VALUE my_debug(VALUE obj, VALUE str)
 {
     mysql_debug(STR2CSTR(str));
     return obj;
+}
+#endif
+
+#if MYSQL_VERSION_ID >= 40000
+/*	client_version()	*/
+static VALUE client_version(VALUE obj)
+{
+    return INT2NUM(mysql_get_client_version());
 }
 #endif
 
@@ -528,10 +536,17 @@ static VALUE select_db(VALUE obj, VALUE db)
 }
 
 /*	shutdown()	*/
-static VALUE my_shutdown(VALUE obj)
+static VALUE my_shutdown(int argc, VALUE* argv, VALUE obj)
 {
     MYSQL* m = GetHandler(obj);
+    VALUE level;
+
+    rb_scan_args(argc, argv, "01", &level);
+#if MYSQL_VERSION_ID >= 40103
+    if (mysql_shutdown(m, NIL_P(level) ? SHUTDOWN_DEFAULT : NUM2INT(level)) != 0)
+#else
     if (mysql_shutdown(m) != 0)
+#endif
 	mysql_raise(m);
     return obj;
 }
@@ -586,6 +601,49 @@ static VALUE query(VALUE obj, VALUE sql)
     return store_result(obj);
 }
 
+#if MYSQL_VERSION_ID >= 40100
+/*	server_version()	*/
+static VALUE server_version(VALUE obj)
+{
+    return INT2NUM(mysql_get_server_version(GetHandler(obj)));
+}
+
+/*	warning_count()	*/
+static VALUE warning_count(VALUE obj)
+{
+    return INT2NUM(mysql_warning_count(GetHandler(obj)));
+}
+
+/*	commit()	*/
+static VALUE commit(VALUE obj)
+{
+    MYSQL* m = GetHandler(obj);
+    if (mysql_commit(m) != 0)
+        mysql_raise(m);
+    return obj;
+}
+
+/*	rollback()	*/
+static VALUE rollback(VALUE obj)
+{
+    MYSQL* m = GetHandler(obj);
+    if (mysql_rollback(m) != 0)
+        mysql_raise(m);
+    return obj;
+}
+
+/*	autocommit()	*/
+static VALUE autocommit(VALUE obj, VALUE mode)
+{
+    MYSQL* m = GetHandler(obj);
+    int f;
+    f = (mode == Qnil || mode == Qfalse || NUM2INT(mode) == 0) ? 0 : 1;
+    if (mysql_autocommit(m, f) != 0)
+        mysql_raise(m);
+    return obj;
+}
+#endif
+
 /*	query_with_result()	*/
 static VALUE query_with_result(VALUE obj)
 {
@@ -606,7 +664,7 @@ static VALUE query_with_result_set(VALUE obj, VALUE flag)
 }
 
 /*-------------------------------
- * MysqlRes object method
+ * Mysql::Result object method
  */
 
 /*	check if alread freed	*/
@@ -614,7 +672,7 @@ static void check_free(VALUE obj)
 {
     struct mysql_res* resp = DATA_PTR(obj);
     if (resp->freed == Qtrue)
-        rb_raise(eMysql, "MysqlRes object is already freed");
+        rb_raise(eMysql, "Mysql::Result object is already freed");
 }
 
 /*	data_seek(offset)	*/
@@ -833,7 +891,7 @@ static VALUE each_hash(int argc, VALUE* argv, VALUE obj)
 }
 
 /*-------------------------------
- * MysqlField object method
+ * Mysql::Field object method
  */
 
 /*	hash	*/
@@ -856,7 +914,7 @@ static VALUE field_inspect(VALUE obj)
 {
     VALUE n = rb_iv_get(obj, "name");
     VALUE s = rb_str_new(0, RSTRING(n)->len + 14);
-    sprintf(RSTRING(s)->ptr, "#<MysqlField:%s>", RSTRING(n)->ptr);
+    sprintf(RSTRING(s)->ptr, "#<Mysql::Field:%s>", RSTRING(n)->ptr);
     return s;
 }
 
@@ -873,8 +931,33 @@ DefineMysqlFieldMemberMethod(max_length)
 DefineMysqlFieldMemberMethod(flags)
 DefineMysqlFieldMemberMethod(decimals)
 
+#ifdef IS_NUM
+/*	is_num?	*/
+static VALUE field_is_num(VALUE obj)
+{
+    return IS_NUM(NUM2INT(rb_iv_get(obj, "type"))) ? Qtrue : Qfalse;
+}
+#endif
+
+#ifdef IS_NOT_NULL
+/*	is_not_null?	*/
+static VALUE field_is_not_null(VALUE obj)
+{
+    return IS_NOT_NULL(NUM2INT(rb_iv_get(obj, "flags"))) ? Qtrue : Qfalse;
+}
+#endif
+
+#ifdef IS_PRI_KEY
+/*	is_pri_key?	*/
+static VALUE field_is_pri_key(VALUE obj)
+{
+    return IS_PRI_KEY(NUM2INT(rb_iv_get(obj, "flags"))) ? Qtrue : Qfalse;
+}
+#endif
+
+
 /*-------------------------------
- * MysqlError object method
+ * Mysql::Error object method
  */
 
 static VALUE error_error(VALUE obj)
@@ -894,9 +977,13 @@ static VALUE error_errno(VALUE obj)
 void Init_mysql(void)
 {
     cMysql = rb_define_class("Mysql", rb_cObject);
-    cMysqlRes = rb_define_class("MysqlRes", rb_cObject);
-    cMysqlField = rb_define_class("MysqlField", rb_cObject);
-    eMysql = rb_define_class("MysqlError", rb_eStandardError);
+    cMysqlRes = rb_define_class_under(cMysql, "Result", rb_cObject);
+    cMysqlField = rb_define_class_under(cMysql, "Field", rb_cObject);
+    eMysql = rb_define_class_under(cMysql, "Error", rb_eStandardError);
+
+    rb_define_global_const("MysqlRes", cMysqlRes);
+    rb_define_global_const("MysqlField", cMysqlField);
+    rb_define_global_const("MysqlError", eMysql);
 
     /* Mysql class method */
     rb_define_singleton_method(cMysql, "init", init, 0);
@@ -909,6 +996,10 @@ void Init_mysql(void)
     rb_define_singleton_method(cMysql, "get_client_info", client_info, 0);
 #if MYSQL_VERSION_ID >= 32332
     rb_define_singleton_method(cMysql, "debug", my_debug, 1);
+#endif
+#if MYSQL_VERSION_ID >= 40000
+    rb_define_singleton_method(cMysql, "get_client_version", client_version, 0);
+    rb_define_singleton_method(cMysql, "client_version", client_version, 0);
 #endif
 
     /* Mysql object method */
@@ -945,6 +1036,10 @@ void Init_mysql(void)
     rb_define_method(cMysql, "errno", my_errno, 0);
     rb_define_method(cMysql, "error", my_error, 0);
     rb_define_method(cMysql, "field_count", field_count, 0);
+#if MYSQL_VERSION_ID >= 40000
+    rb_define_method(cMysql, "get_client_version", client_version, 0);
+    rb_define_method(cMysql, "client_version", client_version, 0);
+#endif
     rb_define_method(cMysql, "get_host_info", host_info, 0);
     rb_define_method(cMysql, "host_info", host_info, 0);
     rb_define_method(cMysql, "get_proto_info", proto_info, 0);
@@ -965,11 +1060,19 @@ void Init_mysql(void)
     rb_define_method(cMysql, "refresh", refresh, 1);
     rb_define_method(cMysql, "reload", reload, 0);
     rb_define_method(cMysql, "select_db", select_db, 1);
-    rb_define_method(cMysql, "shutdown", my_shutdown, 0);
+    rb_define_method(cMysql, "shutdown", my_shutdown, -1);
     rb_define_method(cMysql, "stat", my_stat, 0);
     rb_define_method(cMysql, "store_result", store_result, 0);
     rb_define_method(cMysql, "thread_id", thread_id, 0);
     rb_define_method(cMysql, "use_result", use_result, 0);
+#if MYSQL_VERSION_ID >= 40100
+    rb_define_method(cMysql, "get_server_version", server_version, 0);
+    rb_define_method(cMysql, "server_version", server_version, 0);
+    rb_define_method(cMysql, "warning_count", warning_count, 0);
+    rb_define_method(cMysql, "commit", commit, 0);
+    rb_define_method(cMysql, "rollback", rollback, 0);
+    rb_define_method(cMysql, "autocommit", autocommit, 1);
+#endif
     rb_define_method(cMysql, "query_with_result", query_with_result, 0);
     rb_define_method(cMysql, "query_with_result=", query_with_result_set, 1);
 
@@ -1043,7 +1146,7 @@ void Init_mysql(void)
     rb_define_const(cMysql, "CLIENT_TRANSACTIONS", INT2NUM(CLIENT_TRANSACTIONS));
 #endif
 
-    /* MysqlRes object method */
+    /* Mysql::Result object method */
     rb_define_method(cMysqlRes, "data_seek", data_seek, 1);
     rb_define_method(cMysqlRes, "fetch_field", fetch_field, 0);
     rb_define_method(cMysqlRes, "fetch_fields", fetch_fields, 0);
@@ -1072,8 +1175,17 @@ void Init_mysql(void)
     rb_define_method(cMysqlField, "decimals", field_decimals, 0);
     rb_define_method(cMysqlField, "hash", field_hash, 0);
     rb_define_method(cMysqlField, "inspect", field_inspect, 0);
+#ifdef IS_NUM
+    rb_define_method(cMysqlField, "is_num?", field_is_num, 0);
+#endif
+#ifdef IS_NOT_NULL
+    rb_define_method(cMysqlField, "is_not_null?", field_is_not_null, 0);
+#endif
+#ifdef IS_PRI_KEY
+    rb_define_method(cMysqlField, "is_pri_key?", field_is_pri_key, 0);
+#endif
 
-    /* MysqlField constant: TYPE */
+    /* Mysql::Field constant: TYPE */
     rb_define_const(cMysqlField, "TYPE_TINY", INT2NUM(FIELD_TYPE_TINY));
 #if MYSQL_VERSION_ID >= 32115
     rb_define_const(cMysqlField, "TYPE_ENUM", INT2NUM(FIELD_TYPE_ENUM));
@@ -1096,9 +1208,12 @@ void Init_mysql(void)
     rb_define_const(cMysqlField, "TYPE_SET", INT2NUM(FIELD_TYPE_SET));
     rb_define_const(cMysqlField, "TYPE_BLOB", INT2NUM(FIELD_TYPE_BLOB));
     rb_define_const(cMysqlField, "TYPE_STRING", INT2NUM(FIELD_TYPE_STRING));
+#if MYSQL_VERSION_ID >= 40000
+    rb_define_const(cMysqlField, "TYPE_VAR_STRING", INT2NUM(FIELD_TYPE_VAR_STRING));
+#endif
     rb_define_const(cMysqlField, "TYPE_CHAR", INT2NUM(FIELD_TYPE_CHAR));
 
-    /* MysqlField constant: FLAG */
+    /* Mysql::Field constant: FLAG */
     rb_define_const(cMysqlField, "NOT_NULL_FLAG", INT2NUM(NOT_NULL_FLAG));
     rb_define_const(cMysqlField, "PRI_KEY_FLAG", INT2NUM(PRI_KEY_FLAG));
     rb_define_const(cMysqlField, "UNIQUE_KEY_FLAG", INT2NUM(UNIQUE_KEY_FLAG));
@@ -1123,9 +1238,9 @@ void Init_mysql(void)
     rb_define_const(cMysqlField, "NUM_FLAG", INT2NUM(NUM_FLAG));
 #endif
 
-    /* MysqlError object method */
+    /* Mysql::Error object method */
     rb_define_method(eMysql, "error", error_error, 0);
     rb_define_method(eMysql, "errno", error_errno, 0);
 
-    /* MysqlError constant */
+    /* Mysql::Error constant */
 }
