@@ -1,6 +1,6 @@
-# $Id: README,v 1.18 2002/11/07 04:06:59 tommy Exp $
+# $Id: README,v 1.19 2002/12/23 17:47:24 tommy Exp $
 
-MySQL Ruby Module ver2.4.3
+MySQL Ruby Module ver2.4.3b
 
 This is MySQL Ruby API. This have same function as C API.
 
@@ -168,6 +168,9 @@ require "mysql"
     errno
 
 [History]
+
+  2002-12-24	2.4.3b
+    * make extconf.rb to correspond to Ruby 1.6.8.
 
   2002-11-07	2.4.3a
     * fix bug duplicating constant.

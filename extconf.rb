@@ -6,7 +6,7 @@ inc, lib = dir_config('mysql', '/usr/local')
 #have_library('z')
 find_library('mysqlclient', 'mysql_query', lib, "#{lib}/mysql") or exit 1
 if have_header('mysql.h') then
-  src = '#include <errmsg.h>\n#include <mysqld_error.h>\n'
+  src = "#include <errmsg.h>\n#include <mysqld_error.h>\n"
 elsif have_header('mysql/mysql.h') then
   src = "#include <mysql/errmsg.h>\n#include <mysql/mysqld_error.h>\n"
 else
@@ -14,9 +14,10 @@ else
 end
 create_makefile("mysql")
 
-egrep_cpp("'errmsg\\.h|mysqld_error\\.h' > confout", src)
+try_cpp(src, "> confout")
 error_syms = []
 IO::foreach('confout') do |l|
+  next unless l =~ /errmsg\.h|mysqld_error\.h/
   fn = l.split(/\"/)[1]
   IO::foreach(fn) do |m|
     if m =~ /^#define\s+([CE]R_[A-Z_]+)/ then
