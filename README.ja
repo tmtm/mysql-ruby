@@ -1,13 +1,13 @@
-# $Id: README.ja,v 1.6 2003/01/05 15:17:44 tommy Exp $
+# $Id: README.ja,v 1.7 2003/01/28 23:59:59 tommy Exp $
 
-MySQL Ruby Module ver2.4.3c
+MySQL Ruby Module ver2.4.4
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
 [必要なもの]
 
-・MySQL 3.23.10 以上
-・Ruby 1.4.5 以上
+・MySQL 3.23.54 以上
+・Ruby 1.6.8 以上
 
 これら以外でも make できるかもしれませんが、確認してません。MySQL は 
 3.21.x, 3.22.x でも make できるようにしたつもりですが、試してません :-X
@@ -21,6 +21,12 @@ MySQL Ruby Module ver2.4.3c
 次を実行してください。
 
 	% ruby extconf.rb
+  または
+	% ruby extconf.rb --with-mysql-dir=/usr/local/mysql
+  または
+	% ruby extconf.rb --with-mysql-config
+
+それから
 	% make
 
 extconf.rb には次のオプションを指定できます。
@@ -36,6 +42,9 @@ extconf.rb には次のオプションを指定できます。
     --with-mysql-dir=<dir>
 	--with-mysql-include=<dir>/include, --with-mysql-lib=<dir>/lib 
 	と同じです。
+
+    --with-mysql-config[=/path/to/mysql_config]
+	mysql_config コマンドの結果からコンパイルパラメータを得ます。
 
 次で簡単なテストができます。
 
@@ -337,6 +346,11 @@ require "mysql"
     例) MysqlError::CR_UNKNOWN_HOST
 
 [履歴]
+
+  2003-01-29	2.4.4
+    ・Mysql::OPT_LOCAL_INFILE を追加。
+    ・extconf.rb に --with-mysql-config オプションを追加
+    ・extconf.rb 時に主なライブラリを自動検出するようにした。
 
   2003-01-05	2.4.3c
     ・英語の README の改版。Paul DuBois に感謝。

@@ -1,10 +1,22 @@
 require 'mkmf'
-inc, lib = dir_config('mysql', '/usr/local')
-# If you have error such as 'undefined symbol', delete '#' mark follow
-# lines:
-#have_library('m')
-#have_library('z')
-find_library('mysqlclient', 'mysql_query', lib, "#{lib}/mysql") or exit 1
+
+if mc = with_config('mysql-config') then
+  mc = 'mysql_config' if mc == true
+  cflags = `#{mc} --cflags`.chomp
+  exit 1 if $? != 0
+  libs = `#{mc} --libs`.chomp
+  exit 1 if $? != 0
+  $CPPFLAGS += ' ' + cflags
+  $libs = libs + " " + $libs
+else
+  inc, lib = dir_config('mysql', '/usr/local')
+  libs = ['m', 'z', 'socket', 'nsl']
+  while not find_library('mysqlclient', 'mysql_query', lib, "#{lib}/mysql") do
+    exit 1 if libs.empty?
+    have_library(libs.shift)
+  end
+end
+
 if have_header('mysql.h') then
   src = "#include <errmsg.h>\n#include <mysqld_error.h>\n"
 elsif have_header('mysql/mysql.h') then
@@ -14,7 +26,16 @@ else
 end
 create_makefile("mysql")
 
-try_cpp(src, "> confout")
+# make mysql constant
+File::open("conftest.c", "w") do |f|
+  f.puts src
+end
+cpp = Config::expand sprintf(CPP, $CPPFLAGS, $CFLAGS, '')
+unless system "#{cpp} > confout" then
+  exit 1
+end
+File::unlink "conftest.c"
+
 error_syms = []
 IO::foreach('confout') do |l|
   next unless l =~ /errmsg\.h|mysqld_error\.h/
@@ -28,9 +49,8 @@ end
 File::unlink 'confout'
 error_syms.uniq!
 
-system('cp -p mysql.c mysql.c.orig') unless File::exist? 'mysql.c.orig'
 newf = File::open('mysql.c', 'w')
-IO::foreach('mysql.c.orig') do |l|
+IO::foreach('mysql.c.in') do |l|
   newf.puts l
   if l =~ /\/\* MysqlError constant \*\// then
     error_syms.each do |s|
@@ -38,4 +58,3 @@ IO::foreach('mysql.c.orig') do |l|
     end
   end
 end
-

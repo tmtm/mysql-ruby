@@ -1,14 +1,14 @@
-# $Id: README,v 1.20 2003/01/05 15:17:44 tommy Exp $
+# $Id: README,v 1.22 2003/01/28 23:59:59 tommy Exp $
 
-MySQL Ruby Module ver2.4.3c
+MySQL Ruby Module ver2.4.4
 
 This is the MySQL API module for Ruby. It provides the same functions
 for Ruby programs that the MySQL C API provides for C programs.
 
 [Requirement]
 
-* MySQL 3.23.10+
-* Ruby 1.4.5+
+* MySQL 3.23.54+
+* Ruby 1.6.8+
 
 The module may work for other versions, but that has not been verified.
 
@@ -20,6 +20,12 @@ This program is under Ruby's license.
 
 1st:
 	% ruby extconf.rb
+  or
+	% ruby extconf.rb --with-mysql-dir=/usr/local/mysql
+  or
+	% ruby extconf.rb --with-mysql-config
+
+  then
 	% make
 
   extconf.rb has following options:
@@ -136,7 +142,7 @@ require "mysql"
 
 [MysqlRes class]
 
- CLASS METHODS
+ OBJECT METHODS
     free()
     data_seek(offset)
     fetch_field()
@@ -182,6 +188,11 @@ require "mysql"
     errno
 
 [History]
+
+  2003-01-29	2.4.4
+    * add Mysql::OPT_LOCAL_INFILE.
+    * add --with-mysql-config option to extconf.rb.
+    * extconf.rb automatically detect typical library.
 
   2003-01-05	2.4.3c
     * modified English README. Thanks to Paul DuBois.

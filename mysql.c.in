@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.33 2002/09/09 17:02:17 tommy Exp $
+ *	$Id: mysql.c.in,v 1.1 2003/01/28 23:59:59 tommy Exp $
  */
 
 #include "ruby.h"
@@ -253,6 +253,16 @@ static VALUE options(int argc, VALUE* argv, VALUE obj)
 	    rb_raise(rb_eArgError, "wrong # of arguments(1 for 2)");
 	v = STR2CSTR(val);
 	break;
+#if MYSQL_VERSION_ID >= 32349
+    case MYSQL_OPT_LOCAL_INFILE:
+	if (val == Qnil || val == Qfalse)
+	    v = NULL;
+	else {
+	    n = 1;
+	    v = (char*)&n;
+	}
+	break;
+#endif
     default:
 	v = NULL;
     }
@@ -394,7 +404,7 @@ static VALUE server_info(VALUE obj)
 /*	info()		*/
 static VALUE info(VALUE obj)
 {
-    char* p = mysql_info(GetHandler(obj));
+    const char* p = mysql_info(GetHandler(obj));
     return p? rb_tainted_str_new2(p): Qnil;
 }
 
@@ -529,7 +539,7 @@ static VALUE my_shutdown(VALUE obj)
 static VALUE my_stat(VALUE obj)
 {
     MYSQL* m = GetHandler(obj);
-    char* s = mysql_stat(m);
+    const char* s = mysql_stat(m);
     if (s == NULL)
 	mysql_raise(m);
     return rb_tainted_str_new2(s);
@@ -970,6 +980,9 @@ void Init_mysql(void)
     rb_define_const(cMysql, "INIT_COMMAND", INT2NUM(MYSQL_INIT_COMMAND));
     rb_define_const(cMysql, "READ_DEFAULT_FILE", INT2NUM(MYSQL_READ_DEFAULT_FILE));
     rb_define_const(cMysql, "READ_DEFAULT_GROUP", INT2NUM(MYSQL_READ_DEFAULT_GROUP));
+#endif
+#if MYSQL_VERSION_ID >= 32349
+    rb_define_const(cMysql, "OPT_LOCAL_INFILE", INT2NUM(MYSQL_OPT_LOCAL_INFILE));
 #endif
     rb_define_const(cMysql, "REFRESH_GRANT", INT2NUM(REFRESH_GRANT));
     rb_define_const(cMysql, "REFRESH_LOG", INT2NUM(REFRESH_LOG));
