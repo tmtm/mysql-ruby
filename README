@@ -1,15 +1,16 @@
-# $Id: README,v 1.19 2002/12/23 17:47:24 tommy Exp $
+# $Id: README,v 1.20 2003/01/05 15:17:44 tommy Exp $
 
-MySQL Ruby Module ver2.4.3b
+MySQL Ruby Module ver2.4.3c
 
-This is MySQL Ruby API. This have same function as C API.
+This is the MySQL API module for Ruby. It provides the same functions
+for Ruby programs that the MySQL C API provides for C programs.
 
 [Requirement]
 
 * MySQL 3.23.10+
 * Ruby 1.4.5+
 
-It may be made with other version but not verified.
+The module may work for other versions, but that has not been verified.
 
 [License]
 
@@ -24,7 +25,7 @@ This program is under Ruby's license.
   extconf.rb has following options:
 
     --with-mysql-include=<dir>
-	MySQL header directory. Default is /usr/local/include.
+	MySQL header file directory. Default is /usr/local/include.
 
     --with-mysql-lib=<dir>
 	MySQL library directory. Default is /usr/local/lib.
@@ -36,8 +37,11 @@ This program is under Ruby's license.
 2nd:
 	% ruby -I. ./test.rb hostname user passwd
 
-  test.rb has some argument. MySQL server hostname and MySQL username
-  and password who can create database.
+  test.rb should be invoked with three arguments that indicate the
+  MySQL server hostname, and the username and password for a MySQL
+  account that can create a database named "rubytest".  An optional
+  fourth argument is allowed, to specify a database name to use rather
+  than "rubytest".  The database should not already exist.
 
 3rd:
 	# make install
@@ -45,19 +49,29 @@ This program is under Ruby's license.
 Note:
 
 1. If you get error like 'libmysqlclient not found' when testing, you
-   need to specify library directory on make.
+   need to specify the directory in which the library is located so
+   that make can find it.
 	% env LD_RUN_PATH=<libmysqlclient.so directory> make
 
-2. If you use libmysqlclient.a static library, some library may be
-   needed. Edit extconf.rb to enable "have_library('m')" and
-   "have_library('z')".
+2. If you use the libmysqlclient.a static library, additional
+   libraries may be needed. Edit extconf.rb to enable
+   "have_library('m')" and "have_library('z')" for the -lm and -lz
+   libraries if necessary.
 
 [Usage]
 
-The method name is basically same as C API but no need 'mysql_'
-prefix. For detail of usage of method, please see MySQL manual.
+The names of methods provided by this module basically are the same as
+the names of the functions in the C API, except that the Ruby method
+names do not begin with a 'mysql_' prefix. For example, the Ruby
+query() method corresponds to the C API mysql_query() function. For
+details on the use of each Ruby method, see the descriptions of the
+corresponding C functions in the MySQL Reference Manual.
 
-If an error occured in method, it raise MysqlError exception.
+Some Ruby methods may be invoked under other names that serve as
+equivalent aliases, as noted below.
+
+If an error occurs when a method executes, it raises a MysqlError
+exception.
 
 require "mysql"
 	loading mysql module.
@@ -117,8 +131,8 @@ require "mysql"
 
  OBJECT VARIABLES
     query_with_result
-	If true, query() do also store_result() and return MysqlRes
-	object.  Default is true.
+	If true, query() also invokes store_result() and returns a
+	MysqlRes object.  Default is true.
 
 [MysqlRes class]
 
@@ -138,11 +152,11 @@ require "mysql"
     row_seek(offset)
     row_tell()
 
- ITERATER
+ ITERATOR
     each() {|x| ...}
-	'x' is array of column value.
+	'x' is array of column values.
     each_hash(with_table=false) {|x| ...}
-	'x' is hash of column value, and the key is column name.
+	'x' is hash of column values, and the keys are the column names.
 
 [MysqlField class]
 
@@ -168,6 +182,9 @@ require "mysql"
     errno
 
 [History]
+
+  2003-01-05	2.4.3c
+    * modified English README. Thanks to Paul DuBois.
 
   2002-12-24	2.4.3b
     * make extconf.rb to correspond to Ruby 1.6.8.
