@@ -1,5 +1,5 @@
 # This is script to test for mysql-ruby module.
-# $Id: test.rb,v 1.3 2000/01/06 15:00:30 tommy Exp $
+# $Id: test.rb,v 1.4 2000/05/26 16:19:28 tommy Exp $
 #
 # Execute in mysql-ruby top directory.
 # Modify following $host, $user, $passwd and $db if needed.
@@ -10,10 +10,10 @@
 
 require "./mysql.o"
 
-$host = nil	# i.e. "localhost"
-$user = nil	# i.e. unix login user
-$passwd = nil	# i.e. no password
-$db = "rubytest"
+$host = ARGV.shift
+$user = ARGV.shift
+$passwd = ARGV.shift
+$db = ARGV.shift || "rubytest"
 
 begin
   Dir.glob("t/[0-9]*.rb").sort.each do |f|

@@ -1,4 +1,4 @@
-# $Id: README.jp,v 1.17 2000/05/18 16:58:22 tommy Exp $
+# $Id: README.jp,v 1.18 2000/05/26 16:24:48 tommy Exp $
 
 MySQL Ruby Module ver2.2.1
 
@@ -19,12 +19,12 @@ ver1.x では Perl の古い MySQL インタフェースに関数名等を合わせていました
 
 [インストール]
 
-extconf.rb 中の MYSQLDIR, $CFLAGS, $LDFLAGS, $libs と test.rb 中の 
-$host, $user, $passwd を適当に変更し、次を行ってください。
+extconf.rb 中の MYSQLDIR, $CFLAGS, $LDFLAGS, $libs を適当に変更し、
+次を行ってください。
 
 	% ruby extconf.rb
 	% make
-	% ruby -I. ./test.rb
+	% ruby -I. ./test.rb hostname user passwd
 	% make install
 	% cp mysql-compat.rb /usr/local/lib/ruby	# 必須ではない
 
@@ -293,6 +293,9 @@ require "mysql-compat"
     例) MysqlError::CR_UNKNOWN_HOST
 
 [履歴]
+
+  2000-05-27	2.2.1a
+	test.rb を引数でパラメータを指定できるようにした。
 
   2000-05-10	2.2.1
 	データベースからのデータを「汚染された」文字列に変更。
