@@ -1,6 +1,6 @@
-# $Id: README,v 1.16 2002/01/07 01:22:51 tommy Exp $
+# $Id: README,v 1.17 2002/09/09 17:02:17 tommy Exp $
 
-MySQL Ruby Module ver2.4.2
+MySQL Ruby Module ver2.4.3
 
 This is MySQL Ruby API. This have same function as C API.
 
@@ -10,6 +10,10 @@ This is MySQL Ruby API. This have same function as C API.
 * Ruby 1.4.5+
 
 It may be made with other version but not verified.
+
+[License]
+
+This program is under Ruby's license.
 
 [Install]
 
@@ -164,6 +168,10 @@ require "mysql"
     errno
 
 [History]
+
+  2002-09-10	2.4.3
+    * for error number with prefix ER_ .
+    * get error constant from errmsg.h and mysqld_error.h automatically.
 
   2002-01-07	2.4.2
     * for MySQL 4.0.

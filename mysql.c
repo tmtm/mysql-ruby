@@ -1,14 +1,16 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.32 2002/01/07 01:17:28 tommy Exp $
+ *	$Id: mysql.c,v 1.33 2002/09/09 17:02:17 tommy Exp $
  */
 
 #include "ruby.h"
 #ifdef HAVE_MYSQL_H
 #include <mysql.h>
 #include <errmsg.h>
+#include <mysqld_error.h>
 #else
 #include <mysql/mysql.h>
 #include <mysql/errmsg.h>
+#include <mysql/mysqld_error.h>
 #endif
 
 #define GC_STORE_RESULT_LIMIT 20
@@ -1112,62 +1114,4 @@ void Init_mysql(void)
     rb_define_method(eMysql, "errno", error_errno, 0);
 
     /* MysqlError constant */
-    rb_define_const(eMysql, "CR_UNKNOWN_ERROR", INT2NUM(CR_UNKNOWN_ERROR));
-    rb_define_const(eMysql, "CR_SOCKET_CREATE_ERROR", INT2NUM(CR_SOCKET_CREATE_ERROR));
-    rb_define_const(eMysql, "CR_CONNECTION_ERROR", INT2NUM(CR_CONNECTION_ERROR));
-    rb_define_const(eMysql, "CR_CONN_HOST_ERROR", INT2NUM(CR_CONN_HOST_ERROR));
-    rb_define_const(eMysql, "CR_IPSOCK_ERROR", INT2NUM(CR_IPSOCK_ERROR));
-    rb_define_const(eMysql, "CR_UNKNOWN_HOST", INT2NUM(CR_UNKNOWN_HOST));
-    rb_define_const(eMysql, "CR_SERVER_GONE_ERROR", INT2NUM(CR_SERVER_GONE_ERROR));
-    rb_define_const(eMysql, "CR_VERSION_ERROR", INT2NUM(CR_VERSION_ERROR));
-    rb_define_const(eMysql, "CR_OUT_OF_MEMORY", INT2NUM(CR_OUT_OF_MEMORY));
-    rb_define_const(eMysql, "CR_WRONG_HOST_INFO", INT2NUM(CR_WRONG_HOST_INFO));
-#ifdef CR_LOCALHOST_CONNECTION
-    rb_define_const(eMysql, "CR_LOCALHOST_CONNECTION", INT2NUM(CR_LOCALHOST_CONNECTION));
-#endif
-#ifdef CR_TCP_CONNECTION
-    rb_define_const(eMysql, "CR_TCP_CONNECTION", INT2NUM(CR_TCP_CONNECTION));
-#endif
-#ifdef CR_SERVER_HANDSHAKE_ERR
-    rb_define_const(eMysql, "CR_SERVER_HANDSHAKE_ERR", INT2NUM(CR_SERVER_HANDSHAKE_ERR));
-#endif
-#ifdef CR_SERVER_LOST
-    rb_define_const(eMysql, "CR_SERVER_LOST", INT2NUM(CR_SERVER_LOST));
-#endif
-#ifdef CR_COMMANDS_OUT_OF_SYNC
-    rb_define_const(eMysql, "CR_COMMANDS_OUT_OF_SYNC", INT2NUM(CR_COMMANDS_OUT_OF_SYNC));
-#endif
-#ifdef CR_NAMEDPIPE_CONNECTION
-    rb_define_const(eMysql, "CR_NAMEDPIPE_CONNECTION", INT2NUM(CR_NAMEDPIPE_CONNECTION));
-#endif
-#ifdef CR_NAMEDPIPEWAIT_ERROR
-    rb_define_const(eMysql, "CR_NAMEDPIPEWAIT_ERROR", INT2NUM(CR_NAMEDPIPEWAIT_ERROR));
-#endif
-#ifdef CR_NAMEDPIPEOPEN_ERROR
-    rb_define_const(eMysql, "CR_NAMEDPIPEOPEN_ERROR", INT2NUM(CR_NAMEDPIPEOPEN_ERROR));
-#endif
-#ifdef CR_NAMEDPIPESETSTATE_ERROR
-    rb_define_const(eMysql, "CR_NAMEDPIPESETSTATE_ERROR", INT2NUM(CR_NAMEDPIPESETSTATE_ERROR));
-#endif
-#ifdef CR_CANT_READ_CHARSET
-    rb_define_const(eMysql, "CR_CANT_READ_CHARSET", INT2NUM(CR_CANT_READ_CHARSET));
-#endif
-#ifdef CR_NET_PACKET_TOO_LARGE
-    rb_define_const(eMysql, "CR_NET_PACKET_TOO_LARGE", INT2NUM(CR_NET_PACKET_TOO_LARGE));
-#endif
-#ifdef CR_EMBEDDED_CONNECTION
-    rb_define_const(eMysql, "CR_EMBEDDED_CONNECTION", INT2NUM(CR_EMBEDDED_CONNECTION));
-#endif
-#ifdef CR_PROBE_SLAVE_STATUS
-    rb_define_const(eMysql, "CR_PROBE_SLAVE_STATUS", INT2NUM(CR_PROBE_SLAVE_STATUS));
-#endif
-#ifdef CR_PROBE_SLAVE_HOSTS
-    rb_define_const(eMysql, "CR_PROBE_SLAVE_HOSTS", INT2NUM(CR_PROBE_SLAVE_HOSTS));
-#endif
-#ifdef CR_PROBE_SLAVE_CONNECT
-    rb_define_const(eMysql, "CR_PROBE_SLAVE_CONNECT", INT2NUM(CR_PROBE_SLAVE_CONNECT));
-#endif
-#ifdef CR_PROBE_MASTER_CONNECT
-    rb_define_const(eMysql, "CR_PROBE_MASTER_CONNECT", INT2NUM(CR_PROBE_MASTER_CONNECT));
-#endif
 }
