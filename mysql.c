@@ -1,10 +1,15 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.26 2001/10/12 16:54:17 tommy Exp $
+ *	$Id: mysql.c,v 1.28 2001/12/02 07:57:09 tommy Exp $
  */
 
 #include "ruby.h"
+#ifdef HAVE_MYSQL_H
+#include <mysql.h>
+#include <errmsg.h>
+#else
 #include <mysql/mysql.h>
 #include <mysql/errmsg.h>
+#endif
 
 #define GC_STORE_RESULT_LIMIT 20
 
@@ -875,8 +880,6 @@ static VALUE error_errno(VALUE obj)
 
 void Init_mysql(void)
 {
-    extern VALUE rb_eStandardError;
-
     cMysql = rb_define_class("Mysql", rb_cObject);
     cMysqlRes = rb_define_class("MysqlRes", rb_cObject);
     cMysqlField = rb_define_class("MysqlField", rb_cObject);

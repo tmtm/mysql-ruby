@@ -1,6 +1,6 @@
-# $Id: README.jp,v 1.23 2001/10/12 16:54:17 tommy Exp $
+# $Id: README.jp,v 1.24 2001/12/02 07:57:09 tommy Exp $
 
-MySQL Ruby Module ver2.4
+MySQL Ruby Module ver2.4.1
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
@@ -21,13 +21,17 @@ MySQL Ruby Module ver2.4
 
 extconf.rb には次のオプションを指定できます。
 
-    --with-mysql-include-dir=dir
+    --with-mysql-include=<dir>
 	MySQL のへッダファイルの場所として /usr/local/include の代わりの
 	ディレクトリを指定します。
 
-    --with-mysql-lib-dir=dir
+    --with-mysql-lib=<dir>
 	MySQL のライブラリの場所として /usr/local/lib の代わりのディレク
 	トリを指定します。
+
+    --with-mysql-dir=<dir>
+	--with-mysql-include=<dir>/include, --with-mysql-lib=<dir>/lib 
+	と同じです。
 
 次で簡単なテストができます。
 
@@ -49,12 +53,8 @@ test.rb に与える hostname, user, passwd は MySQL サーバと、そのサーバ上
 
 2. スタティックライブラリの libmysqlclient.a を使用する場合は、いくつか
    ライブラリが必要になる場合があります。未解決シンボルのエラーが出る場
-   合は extconf.rb 中の $libs に "-lm -lz" を指定してみてください。
-
-3. gcc で make して、require "mysql" 実行時に __moddi3 や __divdi3などが
-   未解決シンボルになる場合は、$libs に
-   "/usr/local/lib/gcc-lib/<platform>/<gcc-version>/libgcc.a"を追加して 
-   make してください。
+   合は extconf.rb 中の「have_library('m')」「have_library('z')」を有効
+   にしてください。
 
 [使い方]
 
@@ -68,9 +68,6 @@ test.rb に与える hostname, user, passwd は MySQL サーバと、そのサーバ上
 
 require "mysql"
 	mysql モジュールをロードします。
-
-require "mysql-compat"
-	ver1.0 互換にするためのモジュールです。
 
 [Mysql クラス]
 
@@ -336,6 +333,10 @@ require "mysql-compat"
     例) MysqlError::CR_UNKNOWN_HOST
 
 [履歴]
+
+  2001-12-02	2.4.1
+    ・不要な extern を削除（Cygiwn対応）。
+    ・extconf.rb のオプションを変更。
 
   2001-10-12	2.4.0
     ・Ruby 1.7 に対応。

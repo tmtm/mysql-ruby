@@ -1,6 +1,6 @@
-# $Id: README,v 1.13 2001/10/12 16:54:16 tommy Exp $
+# $Id: README,v 1.14 2001/12/02 07:57:09 tommy Exp $
 
-MySQL Ruby Module ver2.4
+MySQL Ruby Module ver2.4.1
 
 This is MySQL Ruby API. This have same function as C API.
 
@@ -19,14 +19,21 @@ It may be made with other version but not verified.
 
   extconf.rb has following options:
 
-    --with-mysql-include-dir=dir
-        MySQL header directory. Default is /usr/local/include
+    --with-mysql-include=<dir>
+	MySQL header directory. Default is /usr/local/include.
 
-    --with-mysql-lib-dir=dir
-	MySQL library directory. Default is /usr/local/lib
+    --with-mysql-lib=<dir>
+	MySQL library directory. Default is /usr/local/lib.
+
+    --with-mysql-dir=<dir>
+	Same as --with-mysql-include=<dir>/include,
+	--with-mysql-lib=<dir>/lib.
 
 2nd:
 	% ruby -I. ./test.rb hostname user passwd
+
+  test.rb has some argument. MySQL server hostname and MySQL username
+  and password who can create database.
 
 3rd:
 	# make install
@@ -38,11 +45,8 @@ Note:
 	% env LD_RUN_PATH=<libmysqlclient.so directory> make
 
 2. If you use libmysqlclient.a static library, some library may be
-   needed. Edit extconf.rb to add "-lm -lz" for $libs.
-
-3. If you get error like 'undefined symbol __moddi3 or __divdi3', edit
-   extconf.rb to add
-   "/usr/local/lib/gcc-lib/<platform>/<gcc-version>/libgcc.a" for $libs.
+   needed. Edit extconf.rb to enable "have_library('m')" and
+   "have_library('z')".
 
 [Usage]
 
@@ -53,9 +57,6 @@ If an error occured in method, it raise MysqlError exception.
 
 require "mysql"
 	loading mysql module.
-
-require "mysql-compat"
-	for ver1.0 compatibility.
 
 [Mysql class]
 

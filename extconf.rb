@@ -1,19 +1,9 @@
 require 'mkmf'
-MYSQLDIR = "/usr/local"
-
-incdir = with_config("mysql-include-dir")
-if incdir then
-  $CFLAGS += "-I#{incdir}"
-else
-  $CFLAGS = "-I#{MYSQLDIR}/include"
-end
-
-libdir = with_config("mysql-lib-dir")
-if libdir then
-  $LDFLAGS += "-L#{libdir}"
-else
-  $LDFLAGS = "-L#{MYSQLDIR}/lib/mysql"
-end
-
-$libs = "-lmysqlclient"
+inc, lib = dir_config('mysql', '/usr/local')
+find_library('mysqlclient', 'mysql_connect', lib, "#{lib}/mysql") or exit 1
+# If you have error such as 'undefined symbol', delete '#' mark follow
+# lines:
+#have_library('m')
+#have_library('z')
+have_header('mysql.h') or have_header('mysql/mysql.h') or exit 1
 create_makefile("mysql")
