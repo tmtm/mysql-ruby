@@ -1,6 +1,6 @@
-# $Id: README.jp,v 1.18 2000/05/26 16:24:48 tommy Exp $
+# $Id: README.jp,v 1.19 2000/07/21 15:50:08 tommy Exp $
 
-MySQL Ruby Module ver2.2.1
+MySQL Ruby Module ver2.3.0
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
@@ -11,22 +11,24 @@ ver1.x では Perl の古い MySQL インタフェースに関数名等を合わせていました
 
 [必要なもの]
 
-・MySQL 3.22.24 以上
-・Ruby 1.4.0 以上
+・MySQL 3.23.10 以上
+・Ruby 1.4.5 以上
 
 これら以外でも make できるかもしれませんが、確認してません。MySQL は 
-3.21.x でも make できるようにしたつもりですが、試してません :-X
+3.21.x, 3.22.x でも make できるようにしたつもりですが、試してません :-X
 
 [インストール]
 
-extconf.rb 中の MYSQLDIR, $CFLAGS, $LDFLAGS, $libs を適当に変更し、
-次を行ってください。
+extconf.rb 中の MYSQLDIR, $CFLAGS, $LDFLAGS, $libs を適当に変更し、次を
+行ってください。test.rb に与える hostname, user, passwd は MySQL サーバ
+と、そのサーバ上でデータベースを作成することができるユーザ／パスワードを
+指定してください。
 
 	% ruby extconf.rb
 	% make
 	% ruby -I. ./test.rb hostname user passwd
-	% make install
-	% cp mysql-compat.rb /usr/local/lib/ruby	# 必須ではない
+	# make install
+	# cp mysql-compat.rb /usr/local/lib/ruby	# 必須ではない
 
   注意: gcc で make して、require "mysql" 実行時に __moddi3 や __divdi3
 	などが未解決シンボルになる場合は、$libs に
@@ -41,7 +43,7 @@ extconf.rb 中の MYSQLDIR, $CFLAGS, $LDFLAGS, $libs を適当に変更し、
 
 メソッド中でエラーが発生した場合は MysqlError 例外が発生します。
 
-意味のある値を返さない関数は TRUE を返します。
+特に意味のある値を返さない関数は self を返します。
 
 require "mysql"
 	mysql モジュールをロードします。
@@ -191,6 +193,9 @@ require "mysql-compat"
 
  オブジェクトメソッド
 
+    free()
+	結果テーブル用メモリを解放します。
+
     data_seek(offset)
 	現在の行の位置を offset 番目の行にします。
 
@@ -294,6 +299,10 @@ require "mysql-compat"
 
 [履歴]
 
+  2000-07-22	2.3.0
+	MysqlRes#free() を追加。
+	Mysql#initialize(), MysqlRes#initialize() を有効にした。
+
   2000-05-27	2.2.1a
 	test.rb を引数でパラメータを指定できるようにした。
 
@@ -345,7 +354,7 @@ require "mysql-compat"
 
   1998-11-15	2.0
 	メソッド名を C API と同じにした。
-	C++ で全面的に書き直した。
+	C++ でも通るように書き直した。
 
   1998-08-13	1.0
 	初期バージョン。

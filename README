@@ -1,13 +1,13 @@
-# $Id: README,v 1.8 2000/05/26 16:24:48 tommy Exp $
+# $Id: README,v 1.9 2000/07/21 15:50:08 tommy Exp $
 
-MySQL Ruby Module ver2.2.1
+MySQL Ruby Module ver2.3.0
 
 This is MySQL Ruby API. This have same function as C API.
 
 [Requirement]
 
-* MySQL 3.22.24+
-* Ruby 1.4.0+
+* MySQL 3.23.10+
+* Ruby 1.4.5+
 
 It may be made with other version but not verified.
 
@@ -89,6 +89,7 @@ require "mysql-compat"
 [MysqlRes class]
 
  CLASS METHODS
+    free()
     data_seek(offset)
     fetch_field()
     fetch_fields()

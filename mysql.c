@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c,v 1.20 2000/05/09 18:12:04 tommy Exp $
+ *	$Id: mysql.c,v 1.22 2000/07/21 15:29:49 tommy Exp $
  */
 
 #include "ruby.h"
@@ -9,6 +9,7 @@
 #ifndef str2cstr		/* ruby 1.2.x ? */
 #define	Qtrue		TRUE
 #define	Qfalse		FALSE
+#define	rb_exc_raise	rb_raise
 #define	rb_exc_new2	exc_new2
 #define	rb_str_new	str_new
 #define	rb_str_new2	str_new2
@@ -30,8 +31,7 @@
 
 #define GetMysqlStruct(obj)	(Check_Type(obj, T_DATA), (struct mysql*)DATA_PTR(obj))
 #define GetHandler(obj)		(Check_Type(obj, T_DATA), &(((struct mysql*)DATA_PTR(obj))->handler))
-#define GetMysqlRes(obj)	(Check_Type(obj, T_DATA), (MYSQL_RES*)DATA_PTR(obj))
-#define MysqlRes2Obj(res)	(Data_Wrap_Struct(cMysqlRes, 0, mysql_free_result, res))
+#define GetMysqlRes(obj)	(Check_Type(obj, T_DATA), ((struct mysql_res*)DATA_PTR(obj))->res)
 
 VALUE cMysql;
 VALUE cMysqlRes;
@@ -44,6 +44,12 @@ struct mysql {
     char query_with_result;
 };
 
+struct mysql_res {
+    MYSQL_RES* res;
+    char freed;
+};
+
+
 /*	free Mysql class object		*/
 static void free_mysql(struct mysql* my)
 {
@@ -52,15 +58,29 @@ static void free_mysql(struct mysql* my)
     free(my);
 }
 
+static void free_mysqlres(struct mysql_res* resp)
+{
+    if (resp->freed == Qfalse)
+	mysql_free_result(resp->res);
+    free(resp);
+}
+
 static void mysql_raise(MYSQL* m)
 {
     VALUE e = rb_exc_new2(eMysql, mysql_error(m));
     rb_iv_set(e, "errno", INT2FIX(mysql_errno(m)));
-#ifndef str2cstr
-    rb_raise(e);
-#else
     rb_exc_raise(e);
-#endif
+}
+
+static VALUE mysqlres2obj(MYSQL_RES* res)
+{
+    VALUE obj;
+    struct mysql_res* resp;
+    obj = Data_Make_Struct(cMysqlRes, struct mysql_res, 0, free_mysqlres, resp);
+    resp->res = res;
+    resp->freed = Qfalse;
+    rb_obj_call_init(obj, 0, NULL);
+    return obj;
 }
 
 /*	make MysqlField object	*/
@@ -90,11 +110,14 @@ static VALUE make_field_obj(MYSQL_FIELD* f)
 static VALUE init(VALUE klass)
 {
     struct mysql* myp;
-    myp = xmalloc(sizeof(*myp));
+    VALUE obj;
+
+    obj = Data_Make_Struct(klass, struct mysql, 0, free_mysql, myp);
     mysql_init(&myp->handler);
     myp->connection = Qfalse;
     myp->query_with_result = Qtrue;
-    return Data_Wrap_Struct(klass, 0, free_mysql, myp);
+    rb_obj_call_init(obj, 0, NULL);
+    return obj;
 }
 
 /*	real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)	*/
@@ -105,6 +128,7 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
     uint pp, f;
     MYSQL my;
     struct mysql* myp;
+    VALUE obj;
 
 #if MYSQL_VERSION_ID >= 32200
     rb_scan_args(argc, argv, "07", &host, &user, &passwd, &db, &port, &sock, &flag);
@@ -132,11 +156,13 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
 #endif
 	mysql_raise(&my);
 
-    myp = xmalloc(sizeof(*myp));
+    obj = Data_Make_Struct(klass, struct mysql, 0, free_mysql, myp);
     myp->handler = my;
     myp->connection = Qtrue;
     myp->query_with_result = Qtrue;
-    return Data_Wrap_Struct(klass, 0, free_mysql, myp);
+    rb_obj_call_init(obj, argc, argv);
+
+    return obj;
 }
 
 /*	escape_string(string)	*/
@@ -179,7 +205,7 @@ static VALUE real_connect2(int argc, VALUE* argv, VALUE obj)
     if (mysql_real_connect(m, h, u, p, d, pp, s, f) == NULL)
 	mysql_raise(m);
 
-    return Qtrue;
+    return obj;
 }
 
 /*	options(opt, value=nil)	*/
@@ -211,7 +237,7 @@ static VALUE options(int argc, VALUE* argv, VALUE obj)
 
     if (mysql_options(m, NUM2INT(opt), v) != 0)
 	rb_raise(eMysql, "unknown option: %d", NUM2INT(opt));
-    return Qtrue;
+    return obj;
 }
 #endif
 
@@ -229,7 +255,7 @@ static VALUE my_close(VALUE obj)
     if (mysql_errno(m))
 	mysql_raise(m);
     GetMysqlStruct(obj)->connection = Qfalse;
-    return Qtrue;
+    return obj;
 }
 
 /*	create_db(db)	*/
@@ -238,7 +264,7 @@ static VALUE create_db(VALUE obj, VALUE db)
     MYSQL* m = GetHandler(obj);
     if (mysql_create_db(m, STR2CSTR(db)) != 0)
 	mysql_raise(m);
-    return Qtrue;
+    return obj;
 }
 
 /*	drop_db(db)	*/
@@ -247,7 +273,7 @@ static VALUE drop_db(VALUE obj, VALUE db)
     MYSQL* m = GetHandler(obj);
     if (mysql_drop_db(m, STR2CSTR(db)) != 0)
 	mysql_raise(m);
-    return Qtrue;
+    return obj;
 }
 
 /*	errno()		*/
@@ -306,7 +332,7 @@ static VALUE my_kill(VALUE obj, VALUE pid)
     MYSQL* m = GetHandler(obj);
     if (mysql_kill(m, p) != 0)
 	mysql_raise(m);
-    return Qtrue;
+    return obj;
 }
 
 /*	list_dbs(db=nil)	*/
@@ -340,7 +366,7 @@ static VALUE list_fields(int argc, VALUE* argv, VALUE obj)
     res = mysql_list_fields(m, STR2CSTR(table), NILorSTRING(field));
     if (res == NULL)
 	mysql_raise(m);
-    return MysqlRes2Obj(res);
+    return mysqlres2obj(res);
 }
 
 /*	list_processes()	*/
@@ -350,7 +376,7 @@ static VALUE list_processes(VALUE obj)
     MYSQL_RES* res = mysql_list_processes(m);
     if (res == NULL)
 	mysql_raise(m);
-    return MysqlRes2Obj(res);
+    return mysqlres2obj(res);
 }
 
 /*	list_tables(table=nil)	*/
@@ -381,7 +407,7 @@ static VALUE ping(VALUE obj)
     MYSQL* m = GetHandler(obj);
     if (mysql_ping(m) != 0)
 	mysql_raise(m);
-    return Qtrue;
+    return obj;
 }
 
 /*	refresh(r)	*/
@@ -390,7 +416,7 @@ static VALUE refresh(VALUE obj, VALUE r)
     MYSQL* m = GetHandler(obj);
     if (mysql_refresh(m, NUM2INT(r)) != 0)
 	mysql_raise(m);
-    return Qtrue;
+    return obj;
 }
 
 /*	reload()	*/
@@ -399,7 +425,7 @@ static VALUE reload(VALUE obj)
     MYSQL* m = GetHandler(obj);
     if (mysql_reload(m) != 0)
 	mysql_raise(m);
-    return Qtrue;
+    return obj;
 }
 
 /*	select_db(db)	*/
@@ -408,7 +434,7 @@ static VALUE select_db(VALUE obj, VALUE db)
     MYSQL* m = GetHandler(obj);
     if (mysql_select_db(m, STR2CSTR(db)) != 0)
 	mysql_raise(m);
-    return Qtrue;
+    return obj;
 }
 
 /*	shutdown()	*/
@@ -417,7 +443,7 @@ static VALUE my_shutdown(VALUE obj)
     MYSQL* m = GetHandler(obj);
     if (mysql_shutdown(m) != 0)
 	mysql_raise(m);
-    return Qtrue;
+    return obj;
 }
 
 /*	stat()		*/
@@ -437,7 +463,7 @@ static VALUE store_result(VALUE obj)
     MYSQL_RES* res = mysql_store_result(m);
     if (res == NULL)
 	mysql_raise(m);
-    return MysqlRes2Obj(res);
+    return mysqlres2obj(res);
 }
 
 /*	thread_id()	*/
@@ -453,7 +479,7 @@ static VALUE use_result(VALUE obj)
     MYSQL_RES* res = mysql_use_result(m);
     if (res == NULL)
 	mysql_raise(m);
-    return MysqlRes2Obj(res);
+    return mysqlres2obj(res);
 }
 
 /*	query(sql)	*/
@@ -464,9 +490,9 @@ static VALUE query(VALUE obj, VALUE sql)
     if (mysql_real_query(m, RSTRING(sql)->ptr, RSTRING(sql)->len) != 0)
 	mysql_raise(m);
     if (GetMysqlStruct(obj)->query_with_result == Qfalse)
-	return Qtrue;
+	return obj;
     if (mysql_field_count(m) == 0)
-	return Qtrue;
+	return Qnil;
     return store_result(obj);
 }
 
@@ -493,27 +519,42 @@ static VALUE query_with_result_set(VALUE obj, VALUE flag)
  * MysqlRes object method
  */
 
+/*	check if alread freed	*/
+static void check_free(VALUE obj)
+{
+    struct mysql_res* resp = DATA_PTR(obj);
+    if (resp->freed == Qtrue)
+        rb_raise(eMysql, "MysqlRes object is already freed");
+}
+
 /*	data_seek(offset)	*/
 static VALUE data_seek(VALUE obj, VALUE offset)
 {
+    check_free(obj);
     mysql_data_seek(GetMysqlRes(obj), NUM2INT(offset));
-    return Qtrue;
+    return obj;
 }
 
 /*	fetch_field()	*/
 static VALUE fetch_field(VALUE obj)
 {
+    check_free(obj);
     return make_field_obj(mysql_fetch_field(GetMysqlRes(obj)));
 }
 
 /*	fetch_fields()	*/
 static VALUE fetch_fields(VALUE obj)
 {
-    MYSQL_RES* res = GetMysqlRes(obj);
-    MYSQL_FIELD* f = mysql_fetch_fields(res);
-    unsigned int n = mysql_num_fields(res);
-    VALUE ret = rb_ary_new2(n);
+    MYSQL_RES* res;
+    MYSQL_FIELD* f;
+    unsigned int n;
+    VALUE ret;
     unsigned int i;
+    check_free(obj);
+    res = GetMysqlRes(obj);
+    f = mysql_fetch_fields(res);
+    n = mysql_num_fields(res);
+    ret = rb_ary_new2(n);
     for (i=0; i<n; i++)
 	rb_ary_store(ret, i, make_field_obj(&f[i]));
     return ret;
@@ -522,9 +563,13 @@ static VALUE fetch_fields(VALUE obj)
 /*	fetch_field_direct(nr)	*/
 static VALUE fetch_field_direct(VALUE obj, VALUE nr)
 {
-    MYSQL_RES* res = GetMysqlRes(obj);
-    unsigned int max = mysql_num_fields(res);
-    unsigned int n = NUM2INT(nr);
+    MYSQL_RES* res;
+    unsigned int max;
+    unsigned int n;
+    check_free(obj);
+    res = GetMysqlRes(obj);
+    max = mysql_num_fields(res);
+    n = NUM2INT(nr);
     if (n >= max)
 #ifndef str2cstr
         Raise(eMysql, "%d: out of range (max: %d)", n, max-1);
@@ -541,11 +586,15 @@ static VALUE fetch_field_direct(VALUE obj, VALUE nr)
 /*	fetch_lengths()		*/
 static VALUE fetch_lengths(VALUE obj)
 {
-    MYSQL_RES* res = GetMysqlRes(obj);
-    unsigned int n = mysql_num_fields(res);
-    unsigned long* lengths = mysql_fetch_lengths(res);
+    MYSQL_RES* res;
+    unsigned int n;
+    unsigned long* lengths;
     VALUE ary;
     unsigned int i;
+    check_free(obj);
+    res = GetMysqlRes(obj);
+    n = mysql_num_fields(res);
+    lengths = mysql_fetch_lengths(res);
     if (lengths == NULL)
 	return Qnil;
     ary = rb_ary_new2(n);
@@ -557,12 +606,17 @@ static VALUE fetch_lengths(VALUE obj)
 /*	fetch_row()	*/
 static VALUE fetch_row(VALUE obj)
 {
-    MYSQL_RES* res = GetMysqlRes(obj);
-    unsigned int n = mysql_num_fields(res);
-    MYSQL_ROW row = mysql_fetch_row(res);
-    unsigned long* lengths = mysql_fetch_lengths(res);
+    MYSQL_RES* res;
+    unsigned int n;
+    MYSQL_ROW row;
+    unsigned long* lengths;
     VALUE ary;
     unsigned int i;
+    check_free(obj);
+    res = GetMysqlRes(obj);
+    n = mysql_num_fields(res);
+    row = mysql_fetch_row(res);
+    lengths = mysql_fetch_lengths(res);
     if (row == NULL)
 	return Qnil;
     ary = rb_ary_new2(n);
@@ -604,6 +658,7 @@ static VALUE fetch_hash2(VALUE obj, VALUE with_table)
 static VALUE fetch_hash(int argc, VALUE* argv, VALUE obj)
 {
     VALUE with_table;
+    check_free(obj);
     rb_scan_args(argc, argv, "01", &with_table);
     if (with_table == Qnil)
 	with_table = Qfalse;
@@ -613,36 +668,52 @@ static VALUE fetch_hash(int argc, VALUE* argv, VALUE obj)
 /*	field_seek(offset)	*/
 static VALUE field_seek(VALUE obj, VALUE offset)
 {
+    check_free(obj);
     return INT2NUM(mysql_field_seek(GetMysqlRes(obj), NUM2INT(offset)));
 }
 
 /*	field_tell()		*/
 static VALUE field_tell(VALUE obj)
 {
+    check_free(obj);
     return INT2NUM(mysql_field_tell(GetMysqlRes(obj)));
+}
+
+/*	free()			*/
+static VALUE res_free(VALUE obj)
+{
+    struct mysql_res* resp = DATA_PTR(obj);
+    check_free(obj);
+    mysql_free_result(resp->res);
+    resp->freed = Qtrue;
+    return Qnil;
 }
 
 /*	num_fields()		*/
 static VALUE num_fields(VALUE obj)
 {
+    check_free(obj);
     return INT2NUM(mysql_num_fields(GetMysqlRes(obj)));
 }
 
 /*	num_rows()	*/
 static VALUE num_rows(VALUE obj)
 {
+    check_free(obj);
     return INT2NUM(mysql_num_rows(GetMysqlRes(obj)));
 }
 
 /*	row_seek(offset)	*/
 static VALUE row_seek(VALUE obj, VALUE offset)
 {
+    check_free(obj);
     return INT2NUM((int)mysql_row_seek(GetMysqlRes(obj), (MYSQL_ROWS*)NUM2INT(offset)));
 }
 
 /*	row_tell()	*/
 static VALUE row_tell(VALUE obj)
 {
+    check_free(obj);
     return INT2NUM((int)mysql_row_tell(GetMysqlRes(obj)));
 }
 
@@ -650,9 +721,10 @@ static VALUE row_tell(VALUE obj)
 static VALUE each(VALUE obj)
 {
     VALUE row;
+    check_free(obj);
     while ((row = fetch_row(obj)) != Qnil)
 	rb_yield(row);
-    return Qtrue;
+    return obj;
 }
 
 /*	each_hash(with_table=false) {...}	*/
@@ -660,12 +732,13 @@ static VALUE each_hash(int argc, VALUE* argv, VALUE obj)
 {
     VALUE with_table;
     VALUE hash;
+    check_free(obj);
     rb_scan_args(argc, argv, "01", &with_table);
     if (with_table == Qnil)
 	with_table = Qfalse;
     while ((hash = fetch_hash2(obj, with_table)) != Qnil)
 	rb_yield(hash);
-    return Qtrue;
+    return obj;
 }
 
 /*-------------------------------
@@ -832,6 +905,7 @@ void Init_mysql(void)
     rb_define_method(cMysqlRes, "fetch_hash", fetch_hash, -1);
     rb_define_method(cMysqlRes, "field_seek", field_seek, 1);
     rb_define_method(cMysqlRes, "field_tell", field_tell, 0);
+    rb_define_method(cMysqlRes, "free", res_free, 0);
     rb_define_method(cMysqlRes, "num_fields", num_fields, 0);
     rb_define_method(cMysqlRes, "num_rows", num_rows, 0);
     rb_define_method(cMysqlRes, "row_seek", row_seek, 1);
