@@ -1,6 +1,5 @@
 MANIFEST
 depend
 extconf.rb
-mysql.cc
-mysql.rb
+mysql.c
 mysql-compat.rb
