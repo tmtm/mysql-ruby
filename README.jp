@@ -1,0 +1,273 @@
+# $Id: README.jp,v 1.3 1998/11/29 13:58:46 tommy Exp $
+
+MySQL Ruby Module ver2.0.1
+
+これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
+
+ver1.0 では Perl の古い MySQL インタフェースに関数名等を合わせていました
+が、融通が効かないので、ver2.0 では C API に合わせました。そのため、その
+ままでは ver1.0 とは互換がありませんが、mysql-compat.rb を require すれ
+ば、ver1.0 用に作られたスクリプトでもでもそのまま使えるようになっていま
+す。
+
+[必要なもの]
+
+・MySQL 3.22.10
+・Ruby 1.1c7
+・gcc 2.8.1
+
+これら以外でも make できるかもしれませんが、確認してません。
+
+[インストール]
+
+extconf.rb 中の $CFLAGS, $LDFLAGS, $libs を確認し、次を行ってください。
+
+	% ruby extconf.rb
+	% make
+	% make install
+	% cp mysql.rb /usr/local/lib/ruby		# 必須ではない
+	% cp mysql-compat.rb /usr/local/lib/ruby	#   〃
+
+  注意: gcc で make して、require "mysql" 実行時に __moddi3 や __divdi3
+	などが未解決シンボルになる場合は、$libs に
+	"/usr/local/lib/gcc-lib/<platform>/<gcc-version>/libgcc.a"
+	を追加して make してください。
+
+[使い方]
+
+メソッド名は C API の関数から mysql_ 接頭辞を除いたものと同じです。メソッ
+ドの使用方法も基本的に対応する C API 関数と同様ですので、詳細は MySQL の
+マニュアルを見てください。
+
+メソッド中でエラーが発生した場合は MysqlError 例外が発生します。
+
+意味のある値を返さない関数は TRUE を返します。
+
+require "mysql"
+	mysql モジュールをロードします。
+
+require "mysql-compat"
+	ver1.0 互換にするためのモジュールです。
+
+[Mysql クラス]
+
+  MySQL を操作するためのクラスです。
+
+ クラスメソッド
+
+    real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
+    connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
+    new(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
+	mysqld に接続し、Mysql クラスオブジェクトを返します。
+	flag の定数は C API のものと同じです。
+	例) Mysql::CLIENT_FOUND_ROWS
+
+    escape_string(str)
+    quote(str)
+	insert, update 用に文字列をクオートします。
+
+    get_client_info()
+    client_info()
+	クライアントバージョン情報の文字列を返します。
+
+ オブジェクトメソッド
+
+    affected_rows()
+	影響された行数を返します。
+
+    close()
+	接続を切断します。
+
+    create_db(db)
+	データベースを作成します。
+
+    drop_db(db)
+	データベースを破棄します。
+
+    errno()
+	エラー番号を返します。
+
+    error()
+	エラーメッセージを返します。
+
+    get_host_info()
+    host_info()
+	接続情報を文字列で返します。
+
+    get_proto_info()
+    proto_info()
+	接続プロトコルバージョンを数値で返します。
+
+    get_server_info()
+    server_info()
+	サーバのバージョン情報を文字列で返します。
+
+    info()
+	直前のクエリの情報を文字列で返します。特に情報がなければ nil が
+	返ります。
+
+    insert_id()
+	最後に生成された AUTO_INCREMENT 項目の値を返します。	
+
+    kill(id)
+	id で指定したスレッドを殺します。
+
+    list_dbs(db=nil)
+	データベースの一覧を配列で返します。
+
+    list_fields(table, field=nil)
+	テーブル内の項目情報の一覧を示す MysqlRes クラスオブジェクトを返
+	します。
+
+    list_processes()
+	サーバ上の現在のスレッドの一覧を示す MysqlRes クラスオブジェクト
+	を返します。
+
+    list_tables(table=nil)
+	テーブルの一覧を配列で返します。
+
+    ping()
+	サーバが生きているかどうかをチェックします。
+
+    query(q)
+	クエリを実行します。Ruby では文字列の長さを判断できるので、
+	real_query() はありません。
+	クエリが結果を返す場合、自動的に store_result() も実行して、
+	MysqlRes クラスオブジェクトを返します。
+	query_with_result に false が設定されていれば、store_result() は
+	実行しません。
+
+    reload()
+	アクセス権テーブルを再読み込みします。
+
+    select_db(db)
+	データベースを選択します。
+
+    shutdown()
+	サーバを停止します。
+
+    stat()
+	サーバの状態を文字列で返します。
+
+    store_result()
+	クエリの結果の MysqlRes クラスオブジェクトを返します。
+
+    thread_id()
+	現在の接続のスレッドIDを返します。
+
+    use_result()
+	クエリの結果の MysqlRes クラスオブジェクトを返します。
+
+ オブジェクト変数
+
+    query_with_result
+	true に設定すると query() 時に store_result() も実行して、
+	MysqlRes クラスオブジェクトを返します。false に設定するとその動
+	作は行われません。デフォルトは true です。
+
+[MysqlRes クラス]
+
+  クエリ結果のクラスです。
+
+ オブジェクトメソッド
+
+    data_seek(offset)
+	現在の行の位置を offset 番目の行にします。
+
+    fetch_field()
+	現在の項目の MysqlField クラスオブジェクトを返します。次に呼ばれ
+	た時は次の項目を返します。
+
+    fetch_fields()
+	項目全体を表す MysqlField クラスオブジェクトの配列を返します。
+
+    fetch_field_direct(fieldnr)
+	fieldnr 番目の項目の MysqlField クラスオブジェクトを返します。
+
+    fetch_lengths()
+	現在の行の各項目値の長さの配列を返します。
+
+    fetch_row()
+	検索結果の１行を返します。次に呼ばれた時は次の行を返します。
+	戻り値は項目値の配列です。
+
+    fetch_hash(with_table=false)
+	検索結果の１行を返します。次に呼ばれた時は次の行を返します。
+	戻り値は項目名をキーとした項目値のハッシュです。
+	with_table が true の場合はキーにテーブル名も付加され、
+	"テーブル名.項目名" という形式のキーになります。
+	* 要 mysql.rb
+
+    field_seek(offset)
+	現在の項目位置を offset 番目の項目にします。
+
+    field_tell()
+	現在の項目の位置を返します。
+
+    num_fields()
+	項目数を返します。
+
+    num_rows()
+	検索件数を返します。
+
+    row_seek(offset)
+	現在の行の位置を設定します。offset は内部表現で row_tell() が返
+	した値です。
+
+    row_tell()
+	現在の行の位置を内部表現で返します。
+
+ イテレータ
+
+    each() {|x| 〜}
+	検索結果の各行ごとに {〜} を繰り返します。x は項目値の配列です。
+
+    each_hash(with_table=false) {|x| 〜}
+	検索結果の各行ごとに {〜} を繰り返します。x は項目名をキーとした
+	項目値のハッシュです。
+	with_table が true の場合はキーにテーブル名も付加され、
+	"テーブル名.項目名" という形式のキーになります。
+	* 要 mysql.rb
+
+[MysqlField クラス]
+
+  項目の詳細を表すクラスです。C API と異なり、オブジェクトは MysqlRes と
+  は独立して存在するので、MysqlRes クラスオブジェクトが解放された後でも
+  利用できます。が、そのため C API よりもメモリを使用します。
+
+ オブジェクト変数(読み出しのみ)
+    name		項目名
+    table		テーブル名
+    def			デフォルト値
+    type		項目の型
+    length		項目の長さ
+    max_length		検索結果中の項目値の最大長
+    flags		フラグ
+    decimals		小数部桁数
+
+    type に対応する定数は C API のものから FIELD_ 接頭辞を除いたものです。
+    例) MysqlField::TYPE_STRING
+
+    flag に対応する定数は C API のものと同じです。
+    例) MysqlField::BLOB_FLAG
+
+
+[履歴]
+
+  1998-11-29	2.0.1
+	fetch_hash, each_hash に with_table 引数を追加。
+	やっぱり get_* メソッド名も C API と同じにした。
+	mysql-compat.rb を alias で書き直した。
+	Mysql の定数 CLIENT_* が MysqlField の定数になっていた。
+
+  1998-11-15	2.0
+	メソッド名を C API と同じにした。
+	C++ で全面的に書き直した。
+
+  1998-08-13	1.0
+	初期バージョン。
+
+[作者]
+
+  e-mail: 民斗 <tommy@valley.ne.jp>
+  http://www.valley.ne.jp/~tommy/

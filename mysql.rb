@@ -1,42 +1,21 @@
-# $Id: mysql.rb,v 1.1 1998/08/13 17:19:10 tommy Exp $
+# supplement to mysql module
+# $Id: mysql.rb,v 1.3 1998/11/24 19:09:38 tommy Exp $
 
 require 'mysql.o'
 
-class Mysql
-  def listdbs()
-    ret = []
-    query("show databases").each {|x| ret << x[0]}
-    ret
-  end
-
-  def listtables()
-    ret = []
-    query("show tables").each {|x| ret << x[0]}
-    ret
-  end
-
-  def listfields(table)
-    query("show fields from #{table}")
-  end
-end
-
 class MysqlRes
-  def fetchhash()
-    row = fetchrow or return nil
-    fields = fetchfields
+  def fetch_hash(with_table=false)
+    row = fetch_row or return nil
+    fields = fetch_fields
     ret = {}
-    fields.each_index {|i| ret[fields[i]] = row[i]}
+    fields.each_index {|i|
+      n = if with_table then "#{fields[i].table}.#{fields[i].name}" else fields[i].name end
+      ret[n] = row[i]
+    }
     ret
   end
-
-  def each()
-    while row = fetchrow
-      yield row
-    end
-  end
-
-  def each_hash()
-    while hash = fetchhash
+  def each_hash(with_table=false)
+    while hash = fetch_hash(with_table)
       yield hash
     end
   end
