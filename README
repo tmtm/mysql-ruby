@@ -1,6 +1,6 @@
-# $Id: README,v 1.5 1999/09/23 17:26:29 tommy Exp $
+# $Id: README,v 1.6 1999/09/27 15:46:38 tommy Exp $
 
-MySQL Ruby Module ver2.1.7
+MySQL Ruby Module ver2.2.0
 
 This is MySQL Ruby API. This have same function as C API.
 
@@ -36,6 +36,8 @@ require "mysql-compat"
 [Mysql class]
 
  CLASS METHODS
+    init()
+	Used for Mysql#options()
     real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
 	alias: connect(), new()
     escape_string(str)
@@ -44,12 +46,16 @@ require "mysql-compat"
 	alias: client_info()
 
  OBJECT METHODS
+    options(opt, val=nil)
+    real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
+	alias: connect()
     affected_rows()
     close()
     create_db(db)
     drop_db(db)
     errno()
     error()
+    field_count()
     get_host_info()
 	alias: host_info()
     get_proto_info()

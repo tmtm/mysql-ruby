@@ -1,6 +1,6 @@
-# $Id: README.jp,v 1.15 1999/09/23 17:26:29 tommy Exp $
+# $Id: README.jp,v 1.16 1999/09/27 15:46:38 tommy Exp $
 
-MySQL Ruby Module ver2.1.7
+MySQL Ruby Module ver2.2.0
 
 これは MySQL の Ruby API です。MySQL の C API とほぼ同等の機能があります。
 
@@ -54,6 +54,10 @@ require "mysql-compat"
 
  クラスメソッド
 
+    init()
+	Mysql クラスオブジェクトを返します。mysqld に接続はしません。
+	Mysql#options() が必要な場合は、これを呼んだ後に行ないます。
+
     real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
     connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
     new(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
@@ -70,6 +74,16 @@ require "mysql-compat"
 	クライアントバージョン情報の文字列を返します。
 
  オブジェクトメソッド
+
+    options(opt, val=nil)
+	C API の mysql_options() と同じです。opt に指定する定数は C
+	API から MYSQL_ 接頭辞を取り除いたものです。
+	例) Mysql::OPT_CONNECT_TIMEOUT
+
+    real_connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
+    connect(host=nil, user=nil, passwd=nil, db=nil, port=nil, sock=nil, flag=nil)
+	Mysql::real_connect() と同じです。Mysql::init で生成したオブジェ
+	クトをサーバに接続するために使用します。
 
     affected_rows()
 	影響された行数を返します。
@@ -88,6 +102,9 @@ require "mysql-compat"
 
     error()
 	エラーメッセージを返します。
+
+    field_count()
+	最後に実行されたクエリの項目数を返します。
 
     get_host_info()
     host_info()
@@ -275,6 +292,10 @@ require "mysql-compat"
     例) MysqlError::CR_UNKNOWN_HOST
 
 [履歴]
+
+  1999-09-28	2.2.0
+	Mysql::init(), Mysql#options(), Mysql#real_connect() を追加。
+	Mysql#field_count を追加。
 
   1999-09-24	2.1.7
 	MySQL 3.22.26 に対応。
