@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.8 2004/09/20 12:03:47 tommy Exp $
+ *	$Id: mysql.c.in,v 1.9 2004/10/23 05:35:52 tommy Exp $
  */
 
 #include "ruby.h"
@@ -235,6 +235,7 @@ static VALUE real_connect2(int argc, VALUE* argv, VALUE obj)
 
     if (mysql_real_connect(m, h, u, p, d, pp, s, f) == NULL)
 	mysql_raise(m);
+    GetMysqlStruct(obj)->connection = Qtrue;
 
     return obj;
 }
