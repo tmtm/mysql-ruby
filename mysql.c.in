@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.7 2004/08/23 02:50:52 tommy Exp $
+ *	$Id: mysql.c.in,v 1.8 2004/09/20 12:03:47 tommy Exp $
  */
 
 #include "ruby.h"
@@ -644,6 +644,24 @@ static VALUE autocommit(VALUE obj, VALUE mode)
 }
 #endif
 
+#ifdef HAVE_MYSQL_SSL_SET
+/*	ssl_set(key=nil, cert=nil, ca=nil, capath=nil, cipher=nil)	*/
+static VALUE ssl_set(int argc, VALUE* argv, VALUE obj)
+{
+    VALUE key, cert, ca, capath, cipher;
+    char *s_key, *s_cert, *s_ca, *s_capath, *s_cipher;
+    MYSQL* m = GetHandler(obj);
+    rb_scan_args(argc, argv, "05", &key, &cert, &ca, &capath, &cipher);
+    s_key = NILorSTRING(key);
+    s_cert = NILorSTRING(cert);
+    s_ca = NILorSTRING(ca);
+    s_capath = NILorSTRING(capath);
+    s_cipher = NILorSTRING(cipher);
+    mysql_ssl_set(m, s_key, s_cert, s_ca, s_capath, s_cipher);
+    return obj;
+}
+#endif
+
 /*	query_with_result()	*/
 static VALUE query_with_result(VALUE obj)
 {
@@ -1072,6 +1090,9 @@ void Init_mysql(void)
     rb_define_method(cMysql, "commit", commit, 0);
     rb_define_method(cMysql, "rollback", rollback, 0);
     rb_define_method(cMysql, "autocommit", autocommit, 1);
+#endif
+#ifdef HAVE_MYSQL_SSL_SET
+    rb_define_method(cMysql, "ssl_set", ssl_set, -1);
 #endif
     rb_define_method(cMysql, "query_with_result", query_with_result, 0);
     rb_define_method(cMysql, "query_with_result=", query_with_result_set, 1);

@@ -17,6 +17,8 @@ else
   end
 end
 
+have_func('mysql_ssl_set')
+
 if have_header('mysql.h') then
   src = "#include <errmsg.h>\n#include <mysqld_error.h>\n"
 elsif have_header('mysql/mysql.h') then
