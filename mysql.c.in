@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.9 2004/10/23 05:35:52 tommy Exp $
+ *	$Id: mysql.c.in,v 1.16 2005/04/19 14:20:03 tommy Exp $
  */
 
 #include "ruby.h"
@@ -36,7 +36,7 @@
 #define	mysql_field_count	mysql_num_fields
 #endif
 
-#define NILorSTRING(obj)	(NIL_P(obj)? NULL: STR2CSTR(obj))
+#define NILorSTRING(obj)	(NIL_P(obj)? NULL: StringValuePtr(obj))
 #define NILorINT(obj)		(NIL_P(obj)? 0: NUM2INT(obj))
 
 #define GetMysqlStruct(obj)	(Check_Type(obj, T_DATA), (struct mysql*)DATA_PTR(obj))
@@ -172,6 +172,7 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
 #endif
 	mysql_raise(&myp->handler);
 
+    myp->handler.reconnect = 0;
     myp->connection = Qtrue;
     myp->query_with_result = Qtrue;
     rb_obj_call_init(obj, argc, argv);
@@ -199,7 +200,7 @@ static VALUE client_info(VALUE klass)
 /*	my_debug(string)	*/
 static VALUE my_debug(VALUE obj, VALUE str)
 {
-    mysql_debug(STR2CSTR(str));
+    mysql_debug(StringValuePtr(str));
     return obj;
 }
 #endif
@@ -235,6 +236,7 @@ static VALUE real_connect2(int argc, VALUE* argv, VALUE obj)
 
     if (mysql_real_connect(m, h, u, p, d, pp, s, f) == NULL)
 	mysql_raise(m);
+    m->reconnect = 0;
     GetMysqlStruct(obj)->connection = Qtrue;
 
     return obj;
@@ -245,12 +247,20 @@ static VALUE options(int argc, VALUE* argv, VALUE obj)
 {
     VALUE opt, val;
     int n;
+    my_bool b;
     char* v;
     MYSQL* m = GetHandler(obj);
 
     rb_scan_args(argc, argv, "11", &opt, &val);
     switch(NUM2INT(opt)) {
     case MYSQL_OPT_CONNECT_TIMEOUT:
+#if MYSQL_VERSION_ID >= 40100
+    case MYSQL_OPT_PROTOCOL:
+#endif
+#if MYSQL_VERSION_ID >= 40101
+    case MYSQL_OPT_READ_TIMEOUT:
+    case MYSQL_OPT_WRITE_TIMEOUT:
+#endif
 	if (val == Qnil)
 	    rb_raise(rb_eArgError, "wrong # of arguments(1 for 2)");
 	n = NUM2INT(val);
@@ -259,10 +269,26 @@ static VALUE options(int argc, VALUE* argv, VALUE obj)
     case MYSQL_INIT_COMMAND:
     case MYSQL_READ_DEFAULT_FILE:
     case MYSQL_READ_DEFAULT_GROUP:
+#if MYSQL_VERSION_ID >= 32349
+    case MYSQL_SET_CHARSET_DIR:
+    case MYSQL_SET_CHARSET_NAME:
+#endif
+#if MYSQL_VERSION_ID >= 40100
+    case MYSQL_SHARED_MEMORY_BASE_NAME:
+#endif
 	if (val == Qnil)
 	    rb_raise(rb_eArgError, "wrong # of arguments(1 for 2)");
-	v = STR2CSTR(val);
+	v = StringValuePtr(val);
 	break;
+#if MYSQL_VERSION_ID >= 40101
+    case MYSQL_SECURE_AUTH:
+	if (val == Qnil || val == Qfalse)
+	    b = 1;
+	else
+	    b = 0;
+	v = (char*)&b;
+	break;
+#endif
 #if MYSQL_VERSION_ID >= 32349
     case MYSQL_OPT_LOCAL_INFILE:
 	if (val == Qnil || val == Qfalse)
@@ -349,7 +375,7 @@ static VALUE my_close(VALUE obj)
 static VALUE create_db(VALUE obj, VALUE db)
 {
     MYSQL* m = GetHandler(obj);
-    if (mysql_create_db(m, STR2CSTR(db)) != 0)
+    if (mysql_create_db(m, StringValuePtr(db)) != 0)
 	mysql_raise(m);
     return obj;
 }
@@ -358,7 +384,7 @@ static VALUE create_db(VALUE obj, VALUE db)
 static VALUE drop_db(VALUE obj, VALUE db)
 {
     MYSQL* m = GetHandler(obj);
-    if (mysql_drop_db(m, STR2CSTR(db)) != 0)
+    if (mysql_drop_db(m, StringValuePtr(db)) != 0)
 	mysql_raise(m);
     return obj;
 }
@@ -462,7 +488,7 @@ static VALUE list_fields(int argc, VALUE* argv, VALUE obj)
     MYSQL* m = GetHandler(obj);
     MYSQL_RES* res;
     rb_scan_args(argc, argv, "11", &table, &field);
-    res = mysql_list_fields(m, STR2CSTR(table), NILorSTRING(field));
+    res = mysql_list_fields(m, StringValuePtr(table), NILorSTRING(field));
     if (res == NULL)
 	mysql_raise(m);
     return mysqlres2obj(res);
@@ -531,7 +557,7 @@ static VALUE reload(VALUE obj)
 static VALUE select_db(VALUE obj, VALUE db)
 {
     MYSQL* m = GetHandler(obj);
-    if (mysql_select_db(m, STR2CSTR(db)) != 0)
+    if (mysql_select_db(m, StringValuePtr(db)) != 0)
 	mysql_raise(m);
     return obj;
 }
@@ -593,6 +619,31 @@ static VALUE query(VALUE obj, VALUE sql)
 {
     MYSQL* m = GetHandler(obj);
     Check_Type(sql, T_STRING);
+    if (rb_block_given_p()) {
+#if MYSQL_VERSION_ID >= 40101
+	if (mysql_set_server_option(m, MYSQL_OPTION_MULTI_STATEMENTS_ON) != 0)
+	    mysql_raise(m);
+#endif
+	if (mysql_real_query(m, RSTRING(sql)->ptr, RSTRING(sql)->len) != 0)
+	    mysql_raise(m);
+	do {
+	    MYSQL_RES* res = mysql_store_result(m);
+	    if (res == NULL) {
+		if (mysql_field_count(m) != 0)
+		    mysql_raise(m);
+	    } else {
+		static VALUE res_free(VALUE);
+		VALUE robj = mysqlres2obj(res);
+		rb_ensure(rb_yield, robj, res_free, robj);
+	    }
+	}
+#if MYSQL_VERSION_ID >= 40101
+	while (mysql_next_result(m) == 0);
+#else
+	while (0);
+#endif
+	return obj;
+    }
     if (mysql_real_query(m, RSTRING(sql)->ptr, RSTRING(sql)->len) != 0)
 	mysql_raise(m);
     if (GetMysqlStruct(obj)->query_with_result == Qfalse)
@@ -638,7 +689,7 @@ static VALUE autocommit(VALUE obj, VALUE mode)
 {
     MYSQL* m = GetHandler(obj);
     int f;
-    f = (mode == Qnil || mode == Qfalse || NUM2INT(mode) == 0) ? 0 : 1;
+    f = (mode == Qnil || mode == Qfalse || (rb_type(mode) == T_FIXNUM && NUM2INT(mode) == 0)) ? 0 : 1;
     if (mysql_autocommit(m, f) != 0)
         mysql_raise(m);
     return obj;
@@ -663,6 +714,47 @@ static VALUE ssl_set(int argc, VALUE* argv, VALUE obj)
 }
 #endif
 
+#if MYSQL_VERSION_ID >= 40100
+/*	more_results()		*/
+static VALUE more_results(VALUE obj)
+{
+    if (mysql_more_results(GetHandler(obj)) == 0)
+	return Qfalse;
+    else
+	return Qtrue;
+}
+
+static VALUE next_result(VALUE obj)
+{
+    MYSQL* m = GetHandler(obj);
+    int ret;
+    ret = mysql_next_result(m);
+    if (ret > 0)
+	mysql_raise(m);
+    if (ret == 0)
+	return Qtrue;
+    return Qfalse;
+}
+#endif
+
+#if MYSQL_VERSION_ID >= 40101
+/*	set_server_option(option)	*/
+static VALUE set_server_option(VALUE obj, VALUE option)
+{
+    MYSQL *m = GetHandler(obj);
+    if (mysql_set_server_option(m, NUM2INT(option)) != 0)
+	mysql_raise(m);
+    return obj;
+}
+
+/*	sqlstate()	*/
+static VALUE sqlstate(VALUE obj)
+{
+    MYSQL *m = GetHandler(obj);
+    return rb_tainted_str_new2(mysql_sqlstate(m));
+}
+#endif
+
 /*	query_with_result()	*/
 static VALUE query_with_result(VALUE obj)
 {
@@ -679,6 +771,19 @@ static VALUE query_with_result_set(VALUE obj, VALUE flag)
         rb_raise(rb_eTypeError, "invalid type, required true or false.");
 #endif
     GetMysqlStruct(obj)->query_with_result = flag;
+    return flag;
+}
+
+/*	reconnect()	*/
+static VALUE reconnect(VALUE obj)
+{
+    return GetHandler(obj)->reconnect ? Qtrue : Qfalse;
+}
+
+/*	reconnect=(flag)	*/
+static VALUE reconnect_set(VALUE obj, VALUE flag)
+{
+    GetHandler(obj)->reconnect = (flag == Qnil || flag == Qfalse) ? 0 : 1;
     return flag;
 }
 
@@ -932,7 +1037,7 @@ static VALUE field_hash(VALUE obj)
 static VALUE field_inspect(VALUE obj)
 {
     VALUE n = rb_iv_get(obj, "name");
-    VALUE s = rb_str_new(0, RSTRING(n)->len + 14);
+    VALUE s = rb_str_new(0, RSTRING(n)->len + 16);
     sprintf(RSTRING(s)->ptr, "#<Mysql::Field:%s>", RSTRING(n)->ptr);
     return s;
 }
@@ -973,7 +1078,6 @@ static VALUE field_is_pri_key(VALUE obj)
     return IS_PRI_KEY(NUM2INT(rb_iv_get(obj, "flags"))) ? Qtrue : Qfalse;
 }
 #endif
-
 
 /*-------------------------------
  * Mysql::Error object method
@@ -1076,6 +1180,7 @@ void Init_mysql(void)
     rb_define_method(cMysql, "ping", ping, 0);
 #endif
     rb_define_method(cMysql, "query", query, 1);
+    rb_define_method(cMysql, "real_query", query, 1);
     rb_define_method(cMysql, "refresh", refresh, 1);
     rb_define_method(cMysql, "reload", reload, 0);
     rb_define_method(cMysql, "select_db", select_db, 1);
@@ -1095,8 +1200,20 @@ void Init_mysql(void)
 #ifdef HAVE_MYSQL_SSL_SET
     rb_define_method(cMysql, "ssl_set", ssl_set, -1);
 #endif
+#if MYSQL_VERSION_ID >= 40100
+    rb_define_method(cMysql, "more_results", more_results, 0);
+    rb_define_method(cMysql, "more_results?", more_results, 0);
+    rb_define_method(cMysql, "next_result", next_result, 0);
+#endif
+#if MYSQL_VERSION_ID >= 40101
+    rb_define_method(cMysql, "set_server_option", set_server_option, 1);
+    rb_define_method(cMysql, "sqlstate", sqlstate, 0);
+#endif
     rb_define_method(cMysql, "query_with_result", query_with_result, 0);
     rb_define_method(cMysql, "query_with_result=", query_with_result_set, 1);
+
+    rb_define_method(cMysql, "reconnect", reconnect, 0);
+    rb_define_method(cMysql, "reconnect=", reconnect_set, 1);
 
     /* Mysql constant */
 #if MYSQL_VERSION_ID >= 32200
@@ -1108,7 +1225,18 @@ void Init_mysql(void)
     rb_define_const(cMysql, "READ_DEFAULT_GROUP", INT2NUM(MYSQL_READ_DEFAULT_GROUP));
 #endif
 #if MYSQL_VERSION_ID >= 32349
+    rb_define_const(cMysql, "SET_CHARSET_DIR", INT2NUM(MYSQL_SET_CHARSET_DIR));
+    rb_define_const(cMysql, "SET_CHARSET_NAME", INT2NUM(MYSQL_SET_CHARSET_NAME));
     rb_define_const(cMysql, "OPT_LOCAL_INFILE", INT2NUM(MYSQL_OPT_LOCAL_INFILE));
+#endif
+#if MYSQL_VERSION_ID >= 40100
+    rb_define_const(cMysql, "OPT_PROTOCOL", INT2NUM(MYSQL_OPT_PROTOCOL));
+    rb_define_const(cMysql, "SHARED_MEMORY_BASE_NAME", INT2NUM(MYSQL_SHARED_MEMORY_BASE_NAME));
+#endif
+#if MYSQL_VERSION_ID >= 40101
+    rb_define_const(cMysql, "OPT_READ_TIMEOUT", INT2NUM(MYSQL_OPT_READ_TIMEOUT));
+    rb_define_const(cMysql, "OPT_WRITE_TIMEOUT", INT2NUM(MYSQL_OPT_WRITE_TIMEOUT));
+    rb_define_const(cMysql, "SECURE_AUTH", INT2NUM(MYSQL_SECURE_AUTH));
 #endif
     rb_define_const(cMysql, "REFRESH_GRANT", INT2NUM(REFRESH_GRANT));
     rb_define_const(cMysql, "REFRESH_LOG", INT2NUM(REFRESH_LOG));
@@ -1166,6 +1294,16 @@ void Init_mysql(void)
 #endif
 #ifdef CLIENT_TRANSACTIONS
     rb_define_const(cMysql, "CLIENT_TRANSACTIONS", INT2NUM(CLIENT_TRANSACTIONS));
+#endif
+#ifdef CLIENT_MULTI_STATEMENTS
+    rb_define_const(cMysql, "CLIENT_MULTI_STATEMENTS", INT2NUM(CLIENT_MULTI_STATEMENTS));
+#endif
+#ifdef CLIENT_MULTI_RESULTS
+    rb_define_const(cMysql, "CLIENT_MULTI_RESULTS", INT2NUM(CLIENT_MULTI_RESULTS));
+#endif
+#if MYSQL_VERSION_ID >= 40101
+    rb_define_const(cMysql, "OPTION_MULTI_STATEMENTS_ON", INT2NUM(MYSQL_OPTION_MULTI_STATEMENTS_ON));
+    rb_define_const(cMysql, "OPTION_MULTI_STATEMENTS_OFF", INT2NUM(MYSQL_OPTION_MULTI_STATEMENTS_OFF));
 #endif
 
     /* Mysql::Result object method */
@@ -1258,6 +1396,9 @@ void Init_mysql(void)
 #endif
 #ifdef NUM_FLAG
     rb_define_const(cMysqlField, "NUM_FLAG", INT2NUM(NUM_FLAG));
+#endif
+#ifdef PART_KEY_FLAG
+    rb_define_const(cMysqlField, "PART_KEY_FLAG", INT2NUM(PART_KEY_FLAG));
 #endif
 
     /* Mysql::Error object method */
