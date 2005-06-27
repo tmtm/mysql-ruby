@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.16 2005/04/19 14:20:03 tommy Exp $
+ *	$Id: mysql.c.in,v 1.17 2005/06/16 15:49:10 tommy Exp $
  */
 
 #include "ruby.h"
@@ -614,6 +614,7 @@ static VALUE use_result(VALUE obj)
     return mysqlres2obj(res);
 }
 
+static VALUE res_free(VALUE);
 /*	query(sql)	*/
 static VALUE query(VALUE obj, VALUE sql)
 {
@@ -632,7 +633,6 @@ static VALUE query(VALUE obj, VALUE sql)
 		if (mysql_field_count(m) != 0)
 		    mysql_raise(m);
 	    } else {
-		static VALUE res_free(VALUE);
 		VALUE robj = mysqlres2obj(res);
 		rb_ensure(rb_yield, robj, res_free, robj);
 	    }
