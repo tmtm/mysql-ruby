@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb,v 1.6.2.2 2005/07/31 11:33:36 tommy Exp $
+# $Id: test.rb,v 1.10 2005/07/24 14:33:17 tommy Exp $
 
 require "test/unit"
 require "./mysql.o"
@@ -13,10 +13,6 @@ class TC_Mysql < Test::Unit::TestCase
     @flag = flag.to_i
   end
   def teardown()
-  end
-
-  def test_version()
-    assert_equal(20603, Mysql::VERSION)
   end
 
   def test_init()
@@ -175,7 +171,7 @@ class TC_MysqlRes < Test::Unit::TestCase
     @flag = flag.to_i
     @m = Mysql.new(@host, @user, @pass, @db, @port, @sock, @flag)
     @m.query("create temporary table t (id int, str char(10), primary key (id))")
-    @m.query("insert into t values (1, 'abc'), (2, 'defg'), (3, 'hi'), (4, null)")
+    @m.query("insert into t values (1, 'abc'), (2, 'defg'), (3, 'hi')")
     @res = @m.query("select * from t")
   end
   def teardown()
@@ -188,14 +184,13 @@ class TC_MysqlRes < Test::Unit::TestCase
   end
 
   def test_num_rows()
-    assert_equal(4, @res.num_rows)
+    assert_equal(3, @res.num_rows)
   end
 
   def test_fetch_row()
     assert_equal(["1","abc"], @res.fetch_row)
     assert_equal(["2","defg"], @res.fetch_row)
     assert_equal(["3","hi"], @res.fetch_row)
-    assert_equal(["4",nil], @res.fetch_row)
     assert_equal(nil, @res.fetch_row)
   end
 
@@ -203,7 +198,6 @@ class TC_MysqlRes < Test::Unit::TestCase
     assert_equal({"id"=>"1", "str"=>"abc"}, @res.fetch_hash)
     assert_equal({"id"=>"2", "str"=>"defg"}, @res.fetch_hash)
     assert_equal({"id"=>"3", "str"=>"hi"}, @res.fetch_hash)
-    assert_equal({"id"=>"4", "str"=>nil}, @res.fetch_hash)
     assert_equal(nil, @res.fetch_hash)
   end
 
@@ -211,19 +205,18 @@ class TC_MysqlRes < Test::Unit::TestCase
     assert_equal({"t.id"=>"1", "t.str"=>"abc"}, @res.fetch_hash(true))
     assert_equal({"t.id"=>"2", "t.str"=>"defg"}, @res.fetch_hash(true))
     assert_equal({"t.id"=>"3", "t.str"=>"hi"}, @res.fetch_hash(true))
-    assert_equal({"t.id"=>"4", "t.str"=>nil}, @res.fetch_hash(true))
     assert_equal(nil, @res.fetch_hash)
   end
 
   def test_each()
-    ary = [["1","abc"], ["2","defg"], ["3","hi"], ["4",nil]]
+    ary = [["1","abc"], ["2","defg"], ["3","hi"]]
     @res.each do |a|
       assert_equal(ary.shift, a)
     end
   end
 
   def test_each_hash()
-    hash = [{"id"=>"1","str"=>"abc"}, {"id"=>"2","str"=>"defg"}, {"id"=>"3","str"=>"hi"}, {"id"=>"4","str"=>nil}]
+    hash = [{"id"=>"1","str"=>"abc"}, {"id"=>"2","str"=>"defg"}, {"id"=>"3","str"=>"hi"}]
     @res.each_hash do |h|
       assert_equal(hash.shift, h)
     end
@@ -304,8 +297,6 @@ class TC_MysqlRes < Test::Unit::TestCase
     @res.fetch_row
     assert_equal([1, 2],  @res.fetch_lengths())
     @res.fetch_row
-    assert_equal([1, 0],  @res.fetch_lengths())
-    @res.fetch_row
     assert_equal(nil,  @res.fetch_lengths())
   end
 
@@ -362,6 +353,747 @@ class TC_MysqlRes < Test::Unit::TestCase
     assert_equal(true, f.is_pri_key?)
     f = @res.fetch_field
     assert_equal(false, f.is_pri_key?)
+  end
+
+end
+
+class TC_MysqlStmt < Test::Unit::TestCase
+  def setup()
+    @host, @user, @pass, db, port, sock, flag = ARGV
+    @db = db || "test"
+    @port = port.to_i
+    @sock = sock.nil? || sock.empty? ? nil : sock
+    @flag = flag.to_i
+    @m = Mysql.new(@host, @user, @pass, @db, @port, @sock, @flag)
+  end
+  def teardown()
+  end
+
+  def test_init()
+    s = @m.stmt_init()
+    assert_equal(Mysql::Stmt, s.class)
+    s.close
+  end
+end
+
+class TC_MysqlStmt2 < Test::Unit::TestCase
+  def setup()
+    @host, @user, @pass, db, port, sock, flag = ARGV
+    @db = db || "test"
+    @port = port.to_i
+    @sock = sock.nil? || sock.empty? ? nil : sock
+    @flag = flag.to_i
+    @m = Mysql.new(@host, @user, @pass, @db, @port, @sock, @flag)
+    @s = @m.stmt_init()
+  end
+  def teardown()
+    @s.close
+    @m.close
+  end
+
+  def test_affected_rows()
+    @m.query("create temporary table t (i int, c char(10))")
+    @s.prepare("insert into t values (?,?)")
+    @s.execute(1, "hoge")
+    assert_equal(1, @s.affected_rows())
+    @s.execute(2, "hoge")
+    @s.execute(3, "hoge")
+    @s.prepare("update t set c=?")
+    @s.execute("fuga")
+    assert_equal(3, @s.affected_rows())
+  end
+
+=begin
+  def test_attr_get()
+    assert_equal(false, @s.attr_get(Mysql::Stmt::ATTR_UPDATE_MAX_LENGTH))
+    assert_raises(Mysql::Error){@s.attr_get(999)}
+  end
+
+  def test_attr_set()
+    @s.attr_set(Mysql::Stmt::ATTR_UPDATE_MAX_LENGTH, true)
+    assert_equal(true, @s.attr_get(Mysql::Stmt::ATTR_UPDATE_MAX_LENGTH))
+    @s.attr_set(Mysql::Stmt::ATTR_UPDATE_MAX_LENGTH, false)
+    assert_equal(false, @s.attr_get(Mysql::Stmt::ATTR_UPDATE_MAX_LENGTH))
+    assert_raises(Mysql::Error){@s.attr_set(999, true)}
+  end
+
+  def test_bind_param()
+    @s.prepare("insert into t values (?,?)")
+    @s.bind_param(123, "abc")
+    @s.bind_param(Time.now, nil)
+    assert_raises(Mysql::Error){@s.bind_param(1, 2, 3)}
+    b = @s.bind_param(Bind.new(Mysql::TYPE_TINY, 99, false))
+    @s.bind_param(98.765, b)
+  end
+
+  def test_bind_result()
+    @s.bind_result(bind)
+  end
+=end
+
+  def test_data_seek()
+    @m.query("create temporary table t (i int)")
+    @m.query("insert into t values (0),(1),(2),(3),(4),(5)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([1], @s.fetch)
+    assert_equal([2], @s.fetch)
+    @s.data_seek(5)
+    assert_equal([5], @s.fetch)
+    @s.data_seek(1)
+    assert_equal([1], @s.fetch)
+  end
+
+=begin
+  def test_errno()
+    @s.errno()
+  end
+
+  def test_error()
+    @s.error()
+  end
+=end
+
+  def test_execute()
+    @m.query("create temporary table t (i int)")
+    @s.prepare("insert into t values (123)")
+    @s.execute()
+    assert_equal(1, @s.affected_rows)
+    @s.execute()
+    assert_equal(1, @s.affected_rows)
+    assert_equal(2, @m.query("select count(*) from t").fetch_row[0].to_i)
+  end
+
+  def test_execute2()
+    @m.query("create temporary table t (i int)")
+    @s.prepare("insert into t values (?)")
+    @s.execute(123)
+    @s.execute("456")
+    @s.prepare("select * from t")
+    @s.execute
+    assert_equal([123], @s.fetch)
+    assert_equal([456], @s.fetch)
+  end
+
+  def test_execute3()
+    @m.query("create temporary table t (i int, c char(255), t timestamp)")
+    @s.prepare("insert into t values (?,?,?)")
+    @s.execute(123, "hoge", Time.local(2005,7,19,23,53,0));
+    assert_raises(Mysql::Error){@s.execute(123, "hoge")}
+    assert_raises(Mysql::Error){@s.execute(123, "hoge", 0, "fuga")}
+    @s.prepare("select * from t")
+    @s.execute
+    assert_equal([123, "hoge", Mysql::Time.new(2005,7,19,23,53,0)], @s.fetch)
+  end
+
+  def test_execute4()
+    @m.query("create temporary table t (i int, c char(255), t timestamp)")
+    @s.prepare("insert into t values (?,?,?)")
+    @s.execute(nil, "hoge", Mysql::Time.new(2005,7,19,23,53,0));
+    @s.prepare("select * from t")
+    @s.execute
+    assert_equal([nil, "hoge", Mysql::Time.new(2005,7,19,23,53,0)], @s.fetch)
+  end
+
+  def test_fetch()
+    @s.prepare("select 123, 'abc', null")
+    @s.execute()
+    assert_equal([123, "abc", nil], @s.fetch())
+  end
+
+  def test_fetch_tinyint()
+    @m.query("create temporary table t (i tinyint)")
+    @m.query("insert into t values (0),(-1),(127),(-128),(255),(-255)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([-1], @s.fetch)
+    assert_equal([127], @s.fetch)
+    assert_equal([-128], @s.fetch)
+    assert_equal([127], @s.fetch)
+    assert_equal([-128], @s.fetch)
+  end
+
+  def test_fetch_tinyint_unsigned()
+    @m.query("create temporary table t (i tinyint unsigned)")
+    @m.query("insert into t values (0),(-1),(127),(-128),(255),(-255),(256)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([127], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([255], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([255], @s.fetch)
+  end
+
+  def test_fetch_smallint()
+    @m.query("create temporary table t (i smallint)")
+    @m.query("insert into t values (0),(-1),(32767),(-32768),(65535),(-65535),(65536)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([-1], @s.fetch)
+    assert_equal([32767], @s.fetch)
+    assert_equal([-32768], @s.fetch)
+    assert_equal([32767], @s.fetch)
+    assert_equal([-32768], @s.fetch)
+  end
+
+  def test_fetch_smallint_unsigned()
+    @m.query("create temporary table t (i smallint unsigned)")
+    @m.query("insert into t values (0),(-1),(32767),(-32768),(65535),(-65535),(65536)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([32767], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([65535], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([65535], @s.fetch)
+  end
+
+  def test_fetch_mediumint()
+    @m.query("create temporary table t (i mediumint)")
+    @m.query("insert into t values (0),(-1),(8388607),(-8388608),(16777215),(-16777215),(16777216)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([-1], @s.fetch)
+    assert_equal([8388607], @s.fetch)
+    assert_equal([-8388608], @s.fetch)
+    assert_equal([8388607], @s.fetch)
+    assert_equal([-8388608], @s.fetch)
+  end
+
+  def test_fetch_mediumint_unsigned()
+    @m.query("create temporary table t (i mediumint unsigned)")
+    @m.query("insert into t values (0),(-1),(8388607),(-8388608),(16777215),(-16777215),(16777216)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([8388607], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([16777215], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([16777215], @s.fetch)
+  end
+
+  def test_fetch_int()
+    @m.query("create temporary table t (i int)")
+    @m.query("insert into t values (0),(-1),(2147483647),(-2147483648),(4294967295),(-4294967295),(4294967296)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([-1], @s.fetch)
+    assert_equal([2147483647], @s.fetch)
+    assert_equal([-2147483648], @s.fetch)
+    assert_equal([2147483647], @s.fetch)
+    assert_equal([-2147483648], @s.fetch)
+  end
+
+  def test_fetch_int_unsigned()
+    @m.query("create temporary table t (i int unsigned)")
+    @m.query("insert into t values (0),(-1),(2147483647),(-2147483648),(4294967295),(-4294967295),(4294967296)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([2147483647], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([4294967295], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([4294967295], @s.fetch)
+  end
+
+  def test_fetch_bigint()
+    @m.query("create temporary table t (i bigint)")
+    @m.query("insert into t values (0),(-1),(9223372036854775807),(-9223372036854775808),(18446744073709551615),(-18446744073709551615),(18446744073709551616)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([-1], @s.fetch)
+    assert_equal([9223372036854775807], @s.fetch)
+    assert_equal([-9223372036854775808], @s.fetch)
+    assert_equal([-1], @s.fetch)                       # MySQL problem
+    assert_equal([-9223372036854775808], @s.fetch)
+    assert_equal([9223372036854775807], @s.fetch)
+  end
+
+  def test_fetch_bigint_unsigned()
+    @m.query("create temporary table t (i bigint unsigned)")
+    @m.query("insert into t values (0),(-1),(9223372036854775807),(-9223372036854775808),(18446744073709551615),(-18446744073709551615),(18446744073709551616)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([-1], @s.fetch)                   # MySQL & MySQL/Ruby problem
+    assert_equal([9223372036854775807], @s.fetch)
+    assert_equal([-9223372036854775808], @s.fetch) # MySQL & MySQL/Ruby problem
+    assert_equal([-1], @s.fetch)                   # MySQL/Ruby problem
+    assert_equal([0], @s.fetch)
+    assert_equal([-1], @s.fetch)                   # MySQL/Ruby problem
+  end
+
+  def test_fetch_float()
+    @m.query("create temporary table t (i float)")
+    @m.query("insert into t values (0),(-3.402823466E+38),(-1.175494351E-38),(1.175494351E-38),(3.402823466E+38)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_in_delta(-3.402823466E+38, @s.fetch[0], 0.000000001E+38)
+    assert_in_delta(-1.175494351E-38, @s.fetch[0], 0.000000001E-38)
+    assert_in_delta(1.175494351E-38, @s.fetch[0], 0.000000001E-38)
+    assert_in_delta(3.402823466E+38, @s.fetch[0], 0.000000001E+38)
+  end
+
+  def test_fetch_float_unsigned()
+    @m.query("create temporary table t (i float unsigned)")
+    @m.query("insert into t values (0),(-3.402823466E+38),(-1.175494351E-38),(1.175494351E-38),(3.402823466E+38)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_in_delta(1.175494351E-38, @s.fetch[0], 0.000000001E-38)
+    assert_in_delta(3.402823466E+38, @s.fetch[0], 0.000000001E+38)
+  end
+
+  def test_fetch_double()
+    @m.query("create temporary table t (i double)")
+    @m.query("insert into t values (0),(-1.7976931348623157E+308),(-2.2250738585072014E-308),(2.2250738585072014E-308),(1.7976931348623157E+308)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal(-Float::MAX, @s.fetch[0])
+    assert_equal(-Float::MIN, @s.fetch[0])
+    assert_equal(Float::MIN, @s.fetch[0])
+    assert_equal(Float::MAX, @s.fetch[0])
+  end
+
+  def test_fetch_double_unsigned()
+    @m.query("create temporary table t (i double unsigned)")
+    @m.query("insert into t values (0),(-1.7976931348623157E+308),(-2.2250738585072014E-308),(2.2250738585072014E-308),(1.7976931348623157E+308)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal([0], @s.fetch)
+    assert_equal(Float::MIN, @s.fetch[0])
+    assert_equal(Float::MAX, @s.fetch[0])
+  end
+
+  def test_fetch_decimal()
+    @m.query("create temporary table t (i decimal)")
+    @m.query("insert into t values (0),(99999999998),(99999999999),(-9999999998),(-9999999999),(100000000000),(-10000000000)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal(["0"], @s.fetch)
+    assert_equal(["99999999998"], @s.fetch)
+    assert_equal(["99999999999"], @s.fetch)
+    assert_equal(["-9999999998"], @s.fetch)
+    assert_equal(["-9999999999"], @s.fetch)
+    assert_equal(["99999999999"], @s.fetch)
+    assert_equal(["-9999999999"], @s.fetch)
+  end
+
+  def test_fetch_decimal_unsigned()
+    @m.query("create temporary table t (i decimal unsigned)")
+    @m.query("insert into t values (0),(9999999998),(9999999999),(-9999999998),(-9999999999),(10000000000),(-10000000000)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal(["0"], @s.fetch)
+    assert_equal(["9999999998"], @s.fetch)
+    assert_equal(["9999999999"], @s.fetch)
+    assert_equal(["0"], @s.fetch)
+    assert_equal(["0"], @s.fetch)
+    assert_equal(["9999999999"], @s.fetch)
+    assert_equal(["0"], @s.fetch)
+  end
+
+  def test_fetch_date()
+    @m.query("create temporary table t (i date)")
+    @m.query("insert into t values ('0000-00-00'),('1000-01-01'),('9999-12-31')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([Mysql::Time.new(0,0,0)], @s.fetch)
+    assert_equal([Mysql::Time.new(1000,1,1)], @s.fetch)
+    assert_equal([Mysql::Time.new(9999,12,31)], @s.fetch)
+  end
+
+  def test_fetch_datetime()
+    @m.query("create temporary table t (i datetime)")
+    @m.query("insert into t values ('0000-00-00 00:00:00'),('1000-01-01 00:00:00'),('9999-12-31 23:59:59')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([Mysql::Time.new(0,0,0,0,0,0)], @s.fetch)
+    assert_equal([Mysql::Time.new(1000,1,1,0,0,0)], @s.fetch)
+    assert_equal([Mysql::Time.new(9999,12,31,23,59,59)], @s.fetch)
+  end
+
+  def test_fetch_timestamp()
+    @m.query("create temporary table t (i timestamp)")
+    @m.query("insert into t values ('1970-01-01 12:00:00'),('2037-12-31 23:59:59')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([Mysql::Time.new(1970,1,1,12,0,0)], @s.fetch)
+    assert_equal([Mysql::Time.new(2037,12,31,23,59,59)], @s.fetch)
+  end
+
+  def test_fetch_time()
+    @m.query("create temporary table t (i time)")
+    @m.query("insert into t values ('-838:59:59'),(0),('838:59:59')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([Mysql::Time.new(0,0,0,838,59,59,true)], @s.fetch)
+    assert_equal([Mysql::Time.new(0,0,0,0,0,0,false)], @s.fetch)
+    assert_equal([Mysql::Time.new(0,0,0,838,59,59,false)], @s.fetch)
+  end
+
+  def test_fetch_year()
+    @m.query("create temporary table t (i year)")
+    @m.query("insert into t values (0),(70),(69),(1901),(2155)")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([0], @s.fetch)
+    assert_equal([1970], @s.fetch)
+    assert_equal([2069], @s.fetch)
+    assert_equal([1901], @s.fetch)
+    assert_equal([2155], @s.fetch)
+  end
+
+  def test_fetch_char()
+    @m.query("create temporary table t (i char(10))")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_varchar()
+    @m.query("create temporary table t (i varchar(10))")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_binary()
+    @m.query("create temporary table t (i binary(10))")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_varbinary()
+    @m.query("create temporary table t (i varbinary(10))")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_tinyblob()
+    @m.query("create temporary table t (i tinyblob)")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_tinytext()
+    @m.query("create temporary table t (i tinytext)")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_blob()
+    @m.query("create temporary table t (i blob)")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_text()
+    @m.query("create temporary table t (i text)")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_mediumblob()
+    @m.query("create temporary table t (i mediumblob)")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_mediumtext()
+    @m.query("create temporary table t (i mediumtext)")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_longblob()
+    @m.query("create temporary table t (i longblob)")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_longtext()
+    @m.query("create temporary table t (i longtext)")
+    @m.query("insert into t values (null),('abc')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+  end
+
+  def test_fetch_enum()
+    @m.query("create temporary table t (i enum('abc','def'))")
+    @m.query("insert into t values (null),(0),(1),(2),('abc'),('def'),('ghi')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal([""], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+    assert_equal(["def"], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+    assert_equal(["def"], @s.fetch)
+    assert_equal([""], @s.fetch)
+  end
+
+  def test_fetch_set()
+    @m.query("create temporary table t (i set('abc','def'))")
+    @m.query("insert into t values (null),(0),(1),(2),(3),('abc'),('def'),('abc,def'),('ghi')")
+    @s.prepare("select i from t")
+    @s.execute
+    assert_equal([nil], @s.fetch)
+    assert_equal([""], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+    assert_equal(["def"], @s.fetch)
+    assert_equal(["abc,def"], @s.fetch)
+    assert_equal(["abc"], @s.fetch)
+    assert_equal(["def"], @s.fetch)
+    assert_equal(["abc,def"], @s.fetch)
+    assert_equal([""], @s.fetch)
+  end
+
+  def test_each()
+    @m.query("create temporary table t (i int, c char(255), d datetime)")
+    @m.query("insert into t values (1,'abc','19701224235905'),(2,'def','21120903123456'),(3,'123',null)")
+    @s.prepare("select * from t")
+    @s.execute
+    c = 0
+    @s.each do |a|
+      case c
+      when 0
+        assert_equal([1,"abc",Mysql::Time.new(1970,12,24,23,59,05)], a)
+      when 1
+        assert_equal([2,"def",Mysql::Time.new(2112,9,3,12,34,56)], a)
+      when 2
+        assert_equal([3,"123",nil], a)
+      else
+        raise
+      end
+      c += 1
+    end
+  end
+
+  def test_field_count()
+    @s.prepare("select 1,2,3")
+    @s.execute()
+    assert_equal(3, @s.field_count())
+    @s.prepare("set @a=1")
+    @s.execute()
+    assert_equal(0, @s.field_count())
+  end
+
+  def test_free_result()
+    @s.free_result()
+    @s.prepare("select 1,2,3")
+    @s.execute()
+    @s.free_result()
+  end
+
+  def test_insert_id()
+    @m.query("create temporary table t (i int auto_increment, unique(i))")
+    @s.prepare("insert into t values (0)")
+    @s.execute()
+    assert_equal(1, @s.insert_id())
+    @s.execute()
+    assert_equal(2, @s.insert_id())
+  end
+
+  def test_num_rows()
+    @m.query("create temporary table t (i int)")
+    @m.query("insert into t values (1),(2),(3),(4)")
+    @s.prepare("select * from t")
+    @s.execute
+    assert_equal(4, @s.num_rows())
+  end
+
+  def test_param_count()
+    @m.query("create temporary table t (a int, b int, c int)")
+    @s.prepare("select * from t")
+    assert_equal(0, @s.param_count())
+    @s.prepare("insert into t values (?,?,?)")
+    assert_equal(3, @s.param_count())
+  end
+
+=begin
+  def test_param_metadata()
+    @s.param_metadata()
+  end
+=end
+
+  def test_prepare()
+    @s.prepare("select 1")
+    assert_raises(Mysql::Error){@s.prepare("invalid syntax")}
+  end
+
+=begin
+  def test_reset()
+    @s.reset()
+  end
+=end
+
+  def test_result_metadata()
+    @s.prepare("select 1 foo, 2 bar")
+    res = @s.result_metadata()
+    f = res.fetch_fields
+    assert_equal("foo", f[0].name)
+    assert_equal("bar", f[1].name)
+  end
+
+  def test_row_seek_tell()
+    @m.query("create temporary table t (i int)")
+    @m.query("insert into t values (0),(1),(2),(3),(4)")
+    @s.prepare("select * from t")
+    @s.execute
+    row0 = @s.row_tell
+    assert_equal([0], @s.fetch)
+    assert_equal([1], @s.fetch)
+    row2 = @s.row_seek(row0)
+    assert_equal([0], @s.fetch)
+    @s.row_seek(row2)
+    assert_equal([2], @s.fetch)
+  end
+
+=begin
+  def test_send_long_data()
+    @m.query("create temporary table t (i int, t text)")
+    @s.prepare("insert into t values (?,?)")
+    @s.send_long_data(1, "long long data ")
+    @s.send_long_data(1, "long long data2")
+    assert_raises(Mysql::Error){@s.send_long_data(9, "invalid param number")}
+    @s.execute(99, "hoge")
+    assert_equal("long long data long long data2", @m.query("select t from t").fetch_row[0])
+  end
+=end
+
+  def test_sqlstate()
+    @s.prepare("select 1")
+    assert_equal("", @s.sqlstate)
+    assert_raises(Mysql::Error){@s.prepare("hogehoge")}
+    assert_equal("42000", @s.sqlstate)
+  end
+
+=begin
+  def test_store_result()
+    @s.store_result()
+  end
+=end
+  
+end
+
+class TC_MysqlTime < Test::Unit::TestCase
+  def setup()
+  end
+  def teardown()
+  end
+
+  def test_init()
+    t = Mysql::Time.new
+    assert_equal(0, t.year);
+    assert_equal(0, t.month);
+    assert_equal(0, t.day);
+    assert_equal(0, t.hour);
+    assert_equal(0, t.minute);
+    assert_equal(0, t.second);
+    assert_equal(false, t.neg);
+    assert_equal(0, t.second_part);
+  end
+
+  def test_year()
+    t = Mysql::Time.new
+    assert_equal(2005, t.year = 2005)
+    assert_equal(2005, t.year)
+  end
+
+  def test_month()
+    t = Mysql::Time.new
+    assert_equal(11, t.month = 11)
+    assert_equal(11, t.month)
+  end
+
+  def test_day()
+    t = Mysql::Time.new
+    assert_equal(23, t.day = 23)
+    assert_equal(23, t.day)
+  end
+
+  def test_hour()
+    t = Mysql::Time.new
+    assert_equal(15, t.hour = 15)
+    assert_equal(15, t.hour)
+  end
+
+  def test_minute()
+    t = Mysql::Time.new
+    assert_equal(58, t.month = 58)
+    assert_equal(58, t.month)
+  end
+
+  def test_second()
+    t = Mysql::Time.new
+    assert_equal(34, t.second = 34)
+    assert_equal(34, t.second)
+  end
+
+  def test_tos()
+    t = Mysql::Time.new(2005, 7, 19, 10, 15, 49)
+    assert_equal("2005-07-19 10:15:49", t.to_s)
+  end
+
+  def test_eql()
+    t1 = Mysql::Time.new(2005,7,19,23,56,13)
+    t2 = Mysql::Time.new(2005,7,19,23,56,13)
+    assert_equal(t1, t2)
   end
 
 end

@@ -54,6 +54,12 @@ dd {
 
 table {
 	border-collapse: collapse;
+	border: thin solid;
+}
+
+tr,th,td {
+	border: thin solid;
+	padding: 3px;
 }
 
 th {

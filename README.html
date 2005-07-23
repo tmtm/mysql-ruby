@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- $Id: README.html,v 1.10.2.3 2005/07/31 11:33:36 tommy Exp $ -->
+<!-- $Id: README.html,v 1.12 2005/07/24 14:55:22 tommy Exp $ -->
 <html>
   <head>
     <meta http-equiv="content-style-type" content="text/css">
@@ -432,6 +432,12 @@
 	  return server status.
 	</p>
 
+      <dt>stmt_init()
+      <dd>
+	<p>
+	  return Mysql::Stmt class object.
+	</p>
+
       <dt>store_result()
       <dd>
 	<p>
@@ -631,6 +637,158 @@
 	</p>
     </dl>
 
+    <h2>Mysql::Stmt class</h2>
+    <p>
+      Example:
+    </p>
+    <pre class="code">
+my = Mysql.new(hostname, username, password, databasename)
+st = my.stmt_init
+st.prepare("insert into tblname (col1,col2,col3) values (?,?,?)")
+st.execute("abc",123,Time.now)
+st.prepare("select col1,col2,col3 from tblname")
+st.fetch  # => ["abc", 123, &lt;Mysql::Time:2005-07-24 23:52:55&gt;]
+st.close
+</pre>
+
+    <h3>OBJECT METHODS</h3>
+    <dl>
+      <dt>affected_rows()
+      <dd>
+	<p>
+	</p>
+
+      <dt>close()
+      <dd>
+	<p>
+	</p>
+
+      <dt>data_seek(offset)
+      <dd>
+	<p>
+	</p>
+
+      <dt>execute(arg, ...)
+      <dd>
+	<p>
+	</p>
+
+      <dt>fetch()
+      <dd>
+	<p>
+	</p>
+	<p>
+	  Type mapping:
+	</p>
+	<table>
+	    <tr><th>MySQL type<th>Ruby class
+	    <tr><td>TINYINT, SMALLINT, MEDIUMINT, YEAR<td>Fixnum
+	    <tr><td>INT, BIGINT<td>Fixnum or Bignum
+	    <tr><td>FLOAT, DOUBLE<td>Float
+	    <tr><td>DECIMAL<td>String
+	    <tr><td>DATE, DATETIME, TIMESTAMP, TIME<td>Mysql::Time
+	    <tr><td>CHAR, VARCHAR, BINARY, VARBINARY, TINYBLOB, TINYTEXT, TINYBLOB, TINYTEXT, MEDIUMBLOB, MEDIUMTEXT, LONGBLOB, LONGTEXT, ENUM, SET<td>String
+	    <tr><td>NULL<td>NilClass
+	</table>
+
+      <dt>field_count()
+      <dd>
+	<p>
+	</p>
+
+      <dt>free_result()
+      <dd>
+	<p>
+	</p>
+
+      <dt>insert_id()
+      <dd>
+	<p>
+	</p>
+
+      <dt>num_rows()
+      <dd>
+	<p>
+	</p>
+
+      <dt>param_count()
+      <dd>
+	<p>
+	</p>
+
+      <dt>prepare(q)
+      <dd>
+	<p>
+	</p>
+
+      <dt>result_metadata()
+      <dd>
+	<p>
+	</p>
+
+      <dt>row_seek(offset)
+      <dd>
+	<p>
+	</p>
+
+      <dt>row_tell()
+      <dd>
+	<p>
+	</p>
+
+      <dt>sqlstate()
+      <dd>
+	<p>
+	</p>
+    </dl>
+
+    <h3>ITERATOR</h3>
+    <dl>
+      <dt>each() {|x| ...}
+      <dd>
+	<p>
+	</p>
+    </dl>
+
+    <h2>Mysql::Time class</h2>
+    <p>
+    </p>
+
+    <h3>CLASS METHODS</h3>
+    <dl>
+      <dt>new(year=0,month=0,day=0,hour=0,minute=0,second=0,neg=false,second_part=0)
+      <dd>
+	<p>
+	</p>
+    </dl>
+
+    <h3>OBJECT VARIABLES</h3>
+    <dl>
+      <dt>year
+      <dd>
+
+      <dt>month
+      <dd>
+
+      <dt>day
+      <dd>
+
+      <dt>hour
+      <dd>
+
+      <dt>minute
+      <dd>
+
+      <dt>second
+      <dd>
+
+      <dt>neg
+      <dd>
+
+      <dt>second_part
+      <dd>
+    </dl>
+
     <h2>Mysql::Error class</h2>
 
     <h3>OBJECT VARIABLES(read only)</h3>
@@ -643,18 +801,14 @@
 
     <h2>History</h2>
     <dl>
-      <dt>2005-07-31
+      <dt>2005-07-24
       <dd>
-	version 2.6.3
+	version 2.7-beta
 	<ul>
-	  <li>add constant Mysql::VERSION.
-	</ul>
-
-      <dt>2005-07-26
-      <dd>
-	version 2.6.2
-	<ul>
-	  <li>BUG: mysql.c.in: fetch_hash: nil value doesn't exist in hash. (Thanks Stefan Kaes)
+	  <li>add Mysql#stmt_init method
+	  <li>add Mysql::Stmt, Mysql::Time, Mysql::RowOffset class
+	  <li>add Mysql::Error#sqlstate method
+	  <li>change offset value to Mysql::RowOffset object that is used by Mysql::Result#row_seek,row_tell
 	</ul>
 
       <dt>2005-06-28
@@ -802,7 +956,7 @@
     <address><a href="mailto:tommy@tmtm.org">TOMITA Masahiro</a></address>
 <!-- Created: Sun Aug 29 11:52:09 JST 2004 -->
 <!-- hhmts start -->
-Last modified: Sun Jul 31 20:23:22 JST 2005
+Last modified: Sun Jul 24 23:54:00 JST 2005
 <!-- hhmts end -->
   </body>
 </html>
