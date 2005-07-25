@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.17 2005/06/16 15:49:10 tommy Exp $
+ *	$Id: mysql.c.in,v 1.17.2.1 2005/07/26 14:26:05 tommy Exp $
  */
 
 #include "ruby.h"
@@ -912,8 +912,6 @@ static VALUE fetch_hash2(VALUE obj, VALUE with_table)
     hash = rb_hash_new();
     for (i=0; i<n; i++) {
 	VALUE col;
-	if (row[i] == NULL)
-	    continue;
 	if (with_table == Qnil || with_table == Qfalse)
 	    col = rb_tainted_str_new2(fields[i].name);
 	else {
