@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb,v 1.6.2.1 2005/07/26 14:26:05 tommy Exp $
+# $Id: test.rb,v 1.6.2.2 2005/07/31 11:33:36 tommy Exp $
 
 require "test/unit"
 require "./mysql.o"
@@ -13,6 +13,10 @@ class TC_Mysql < Test::Unit::TestCase
     @flag = flag.to_i
   end
   def teardown()
+  end
+
+  def test_version()
+    assert_equal(20603, Mysql::VERSION)
   end
 
   def test_init()
@@ -71,13 +75,13 @@ class TC_Mysql < Test::Unit::TestCase
     @m.close
   end
 
-  def test_real_connect()
+  def test_real_connect2()
     @m = Mysql.init
     assert_equal(@m, @m.real_connect(@host, @user, @pass, @db, @port, @sock, @flag))
     @m.close
   end
 
-  def test_connect()
+  def test_connect2()
     @m = Mysql.init
     assert_equal(@m, @m.connect(@host, @user, @pass, @db, @port, @sock, @flag))
     @m.close
