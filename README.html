@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- $Id: README.html,v 1.12 2005/07/24 14:55:22 tommy Exp $ -->
+<!-- $Id: README.html,v 1.14 2005/08/02 10:49:41 tommy Exp $ -->
 <html>
   <head>
     <meta http-equiv="content-style-type" content="text/css">
@@ -366,6 +366,11 @@
 	  check server.
 	</p>
 
+      <dt>prepare(q)
+      <dd>
+	<p>
+	</p>
+
       <dt>query(q)
       <dt>real_query(q)
       <dd>
@@ -643,10 +648,10 @@
     </p>
     <pre class="code">
 my = Mysql.new(hostname, username, password, databasename)
-st = my.stmt_init
-st.prepare("insert into tblname (col1,col2,col3) values (?,?,?)")
+st = my.prepare("insert into tblname (col1,col2,col3) values (?,?,?)")
 st.execute("abc",123,Time.now)
 st.prepare("select col1,col2,col3 from tblname")
+st.execute
 st.fetch  # => ["abc", 123, &lt;Mysql::Time:2005-07-24 23:52:55&gt;]
 st.close
 </pre>
@@ -801,6 +806,15 @@ st.close
 
     <h2>History</h2>
     <dl>
+      <dt>2005-08-02
+      <dd>
+	version 2.7-beta2
+	<ul>
+	  <li>BUG: mysql.c.in: fetch_hash: nil value doesn't exist in hash. (Thanks Stefan Kaes)
+	  <li>add constant Mysql::VERSION.
+	  <li>add Mysql#prepare
+	</ul>
+
       <dt>2005-07-24
       <dd>
 	version 2.7-beta
@@ -809,6 +823,20 @@ st.close
 	  <li>add Mysql::Stmt, Mysql::Time, Mysql::RowOffset class
 	  <li>add Mysql::Error#sqlstate method
 	  <li>change offset value to Mysql::RowOffset object that is used by Mysql::Result#row_seek,row_tell
+	</ul>
+
+      <dt>2005-07-31
+      <dd>
+	version 2.6.3
+	<ul>
+	  <li>add constant Mysql::VERSION.
+	</ul>
+
+      <dt>2005-07-26
+      <dd>
+	version 2.6.2
+	<ul>
+	  <li>BUG: mysql.c.in: fetch_hash: nil value doesn't exist in hash. (Thanks Stefan Kaes)
 	</ul>
 
       <dt>2005-06-28
@@ -956,7 +984,7 @@ st.close
     <address><a href="mailto:tommy@tmtm.org">TOMITA Masahiro</a></address>
 <!-- Created: Sun Aug 29 11:52:09 JST 2004 -->
 <!-- hhmts start -->
-Last modified: Sun Jul 24 23:54:00 JST 2005
+Last modified: Tue Aug  2 19:49:24 JST 2005
 <!-- hhmts end -->
   </body>
 </html>

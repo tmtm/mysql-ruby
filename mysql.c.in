@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.23 2005/07/24 14:38:45 tommy Exp $
+ *	$Id: mysql.c.in,v 1.26 2005/07/31 16:48:41 tommy Exp $
  */
 
 #include "ruby.h"
@@ -13,6 +13,8 @@
 #include <mysql/errmsg.h>
 #include <mysql/mysqld_error.h>
 #endif
+
+#define MYSQL_RUBY_VERSION 20700
 
 #define GC_STORE_RESULT_LIMIT 20
 
@@ -834,16 +836,26 @@ static VALUE stmt_init(VALUE obj)
     MYSQL_STMT *s;
     struct mysql_stmt* stmt;
     my_bool true = 1;
+    VALUE st_obj;
 
     if ((s = mysql_stmt_init(m)) == NULL)
 	mysql_raise(m);
     if (mysql_stmt_attr_set(s, STMT_ATTR_UPDATE_MAX_LENGTH, &true))
 	rb_raise(rb_eArgError, "mysql_stmt_attr_set() failed");
-    obj = Data_Make_Struct(cMysqlStmt, struct mysql_stmt, 0, free_mysqlstmt, stmt);
+    st_obj = Data_Make_Struct(cMysqlStmt, struct mysql_stmt, 0, free_mysqlstmt, stmt);
     memset(stmt, 0, sizeof(*stmt));
     stmt->stmt = s;
     stmt->closed = Qfalse;
-    return obj;
+    return st_obj;
+}
+
+static VALUE stmt_prepare(VALUE obj, VALUE query);
+/*	prepare(query)	*/
+static VALUE prepare(VALUE obj, VALUE query)
+{
+    VALUE st;
+    st = stmt_init(obj);
+    return stmt_prepare(st, query);
 }
 #endif
 
@@ -1004,8 +1016,6 @@ static VALUE fetch_hash2(VALUE obj, VALUE with_table)
     hash = rb_hash_new();
     for (i=0; i<n; i++) {
 	VALUE col;
-	if (row[i] == NULL)
-	    continue;
 	if (with_table == Qnil || with_table == Qfalse)
 	    col = rb_tainted_str_new2(fields[i].name);
 	else {
@@ -1853,6 +1863,7 @@ void Init_mysql(void)
 #endif
 #if MYSQL_VERSION_ID >= 40102
     rb_define_method(cMysql, "stmt_init", stmt_init, 0);
+    rb_define_method(cMysql, "prepare", prepare, 1);
 #endif
 #if MYSQL_VERSION_ID >= 40100
     rb_define_method(cMysql, "more_results", more_results, 0);
@@ -1870,6 +1881,7 @@ void Init_mysql(void)
     rb_define_method(cMysql, "reconnect=", reconnect_set, 1);
 
     /* Mysql constant */
+    rb_define_const(cMysql, "VERSION", INT2FIX(MYSQL_RUBY_VERSION));
 #if MYSQL_VERSION_ID >= 32200
     rb_define_const(cMysql, "OPT_CONNECT_TIMEOUT", INT2NUM(MYSQL_OPT_CONNECT_TIMEOUT));
     rb_define_const(cMysql, "OPT_COMPRESS", INT2NUM(MYSQL_OPT_COMPRESS));

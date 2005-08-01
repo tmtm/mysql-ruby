@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- $Id: README_ja.html,v 1.16 2005/07/24 14:55:22 tommy Exp $ -->
+<!-- $Id: README_ja.html,v 1.18 2005/08/02 10:49:41 tommy Exp $ -->
 <html>
   <head>
     <meta http-equiv="content-style-type" content="text/css">
@@ -368,6 +368,16 @@
 	  サーバが生きているかどうかをチェックします。
 	</p>
 
+      <dt>prepare(q)
+      <dd>
+	<p>
+	  クエリをサーバに送ります。この時点ではまだ実行されません。
+	  Mysql::Stmt クラスオブジェクトを返します。
+	</p>
+	<p>
+	  Mysql#stmt_init.prepare(q) と同じです。
+	</p>
+
       <dt>query(q)
       <dt>real_query(q)
       <dd>
@@ -673,10 +683,10 @@
     </p>
     <pre class="code">
 my = Mysql.new(hostname, username, password, databasename)
-st = my.stmt_init
-st.prepare("insert into tblname (col1,col2,col3) values (?,?,?)")
+st = my.prepare("insert into tblname (col1,col2,col3) values (?,?,?)")
 st.execute("abc",123,Time.now)
 st.prepare("select col1,col2,col3 from tblname")
+st.execute
 st.fetch  # => ["abc", 123, &lt;Mysql::Time:2005-07-24 23:52:55&gt;]
 st.close
 </pre>
@@ -872,6 +882,15 @@ st.close
 
     <h2>履歴</h2>
     <dl>
+      <dt>2005-08-02
+      <dd>
+	version 2.7-beta2
+	<ul>
+	  <li>BUG: mysql.c.in: fetch_hash: 値が nil の要素がハッシュに含まれない。(Stefan Kaes に感謝)
+	  <li>定数 Mysql::VERSION 追加
+	  <li>Mysql#prepare 追加
+	</ul>
+
       <dt>2005-07-24
       <dd>
 	version 2.7-beta
@@ -880,6 +899,20 @@ st.close
 	  <li>Mysql::Stmt, Mysql::Time, Mysql::RowOffset クラス追加
 	  <li>Mysql::Error#sqlstate 追加
 	  <li>Mysql::Result#row_seek,row_tell が扱う offset 値を Mysql::RowOffset オブジェクトに変更
+	</ul>
+
+      <dt>2005-07-31
+      <dd>
+	version 2.6.3
+	<ul>
+	  <li>定数 Mysql::VERSION 追加
+	</ul>
+
+      <dt>2005-07-26
+      <dd>
+	version 2.6.2
+	<ul>
+	  <li>BUG: mysql.c.in: fetch_hash: 値が nil の要素がハッシュに含まれない。(Stefan Kaes に感謝)
 	</ul>
 
       <dt>2005-06-28
@@ -1171,7 +1204,7 @@ st.close
     <address><a href="mailto:tommy@tmtm.org">TOMITA Masahiro</a></address>
 <!-- Created: Sun Aug 29 11:52:09 JST 2004 -->
 <!-- hhmts start -->
-Last modified: Sun Jul 24 23:53:34 JST 2005
+Last modified: Tue Aug  2 19:49:18 JST 2005
 <!-- hhmts end -->
   </body>
 </html>

@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb,v 1.10 2005/07/24 14:33:17 tommy Exp $
+# $Id: test.rb,v 1.13 2005/07/31 16:48:46 tommy Exp $
 
 require "test/unit"
 require "./mysql.o"
@@ -13,6 +13,10 @@ class TC_Mysql < Test::Unit::TestCase
     @flag = flag.to_i
   end
   def teardown()
+  end
+
+  def test_version()
+    assert_equal(20700, Mysql::VERSION)
   end
 
   def test_init()
@@ -171,7 +175,7 @@ class TC_MysqlRes < Test::Unit::TestCase
     @flag = flag.to_i
     @m = Mysql.new(@host, @user, @pass, @db, @port, @sock, @flag)
     @m.query("create temporary table t (id int, str char(10), primary key (id))")
-    @m.query("insert into t values (1, 'abc'), (2, 'defg'), (3, 'hi')")
+    @m.query("insert into t values (1, 'abc'), (2, 'defg'), (3, 'hi'), (4, null)")
     @res = @m.query("select * from t")
   end
   def teardown()
@@ -184,13 +188,14 @@ class TC_MysqlRes < Test::Unit::TestCase
   end
 
   def test_num_rows()
-    assert_equal(3, @res.num_rows)
+    assert_equal(4, @res.num_rows)
   end
 
   def test_fetch_row()
     assert_equal(["1","abc"], @res.fetch_row)
     assert_equal(["2","defg"], @res.fetch_row)
     assert_equal(["3","hi"], @res.fetch_row)
+    assert_equal(["4",nil], @res.fetch_row)
     assert_equal(nil, @res.fetch_row)
   end
 
@@ -198,6 +203,7 @@ class TC_MysqlRes < Test::Unit::TestCase
     assert_equal({"id"=>"1", "str"=>"abc"}, @res.fetch_hash)
     assert_equal({"id"=>"2", "str"=>"defg"}, @res.fetch_hash)
     assert_equal({"id"=>"3", "str"=>"hi"}, @res.fetch_hash)
+    assert_equal({"id"=>"4", "str"=>nil}, @res.fetch_hash)
     assert_equal(nil, @res.fetch_hash)
   end
 
@@ -205,18 +211,19 @@ class TC_MysqlRes < Test::Unit::TestCase
     assert_equal({"t.id"=>"1", "t.str"=>"abc"}, @res.fetch_hash(true))
     assert_equal({"t.id"=>"2", "t.str"=>"defg"}, @res.fetch_hash(true))
     assert_equal({"t.id"=>"3", "t.str"=>"hi"}, @res.fetch_hash(true))
+    assert_equal({"t.id"=>"4", "t.str"=>nil}, @res.fetch_hash(true))
     assert_equal(nil, @res.fetch_hash)
   end
 
   def test_each()
-    ary = [["1","abc"], ["2","defg"], ["3","hi"]]
+    ary = [["1","abc"], ["2","defg"], ["3","hi"], ["4",nil]]
     @res.each do |a|
       assert_equal(ary.shift, a)
     end
   end
 
   def test_each_hash()
-    hash = [{"id"=>"1","str"=>"abc"}, {"id"=>"2","str"=>"defg"}, {"id"=>"3","str"=>"hi"}]
+    hash = [{"id"=>"1","str"=>"abc"}, {"id"=>"2","str"=>"defg"}, {"id"=>"3","str"=>"hi"}, {"id"=>"4","str"=>nil}]
     @res.each_hash do |h|
       assert_equal(hash.shift, h)
     end
@@ -297,6 +304,8 @@ class TC_MysqlRes < Test::Unit::TestCase
     @res.fetch_row
     assert_equal([1, 2],  @res.fetch_lengths())
     @res.fetch_row
+    assert_equal([1, 0],  @res.fetch_lengths())
+    @res.fetch_row
     assert_equal(nil,  @res.fetch_lengths())
   end
 
@@ -374,6 +383,13 @@ class TC_MysqlStmt < Test::Unit::TestCase
     assert_equal(Mysql::Stmt, s.class)
     s.close
   end
+
+  def test_prepare()
+    s = @m.prepare("select 1")
+    assert_equal(Mysql::Stmt, s.class)
+    s.close
+  end
+
 end
 
 class TC_MysqlStmt2 < Test::Unit::TestCase
