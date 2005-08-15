@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb,v 1.13 2005/07/31 16:48:46 tommy Exp $
+# $Id: test.rb,v 1.14 2005/08/14 03:37:24 tommy Exp $
 
 require "test/unit"
 require "./mysql.o"
@@ -441,11 +441,91 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
     b = @s.bind_param(Bind.new(Mysql::TYPE_TINY, 99, false))
     @s.bind_param(98.765, b)
   end
-
-  def test_bind_result()
-    @s.bind_result(bind)
-  end
 =end
+
+  def test_bind_result_nil()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    @s.bind_result(nil,nil,nil,nil)
+    @s.execute
+    a = @s.fetch
+    assert_equal([123, "9abcdefg", 1.2345, Mysql::Time.new(2005,8,2,23,50,11)], a)
+  end
+
+  def test_bind_result_numeric()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    @s.bind_result(Numeric, Numeric, Numeric, Numeric)
+    @s.execute
+    a = @s.fetch
+    assert_equal([123, 9, 1, 2005], a)
+  end
+
+  def test_bind_result_integer()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    @s.bind_result(Integer, Integer, Integer, Integer)
+    @s.execute
+    a = @s.fetch
+    assert_equal([123, 9, 1, 2005], a)
+  end
+
+  def test_bind_result_fixnum()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    @s.bind_result(Fixnum, Fixnum, Fixnum, Fixnum)
+    @s.execute
+    a = @s.fetch
+    assert_equal([123, 9, 1, 2005], a)
+  end
+
+  def test_bind_result_string()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    @s.bind_result(String, String, String, String)
+    @s.execute
+    a = @s.fetch
+    assert_equal(["123", "9abcdefg", "1.2345", "2005-08-02 23:50:11"], a)
+  end
+
+  def test_bind_result_float()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    @s.bind_result(Float, Float, Float, Float)
+    @s.execute
+    a = @s.fetch
+    assert_equal([123.0, 9.0, 1.2345, 2005.0], a)
+  end
+
+  def test_bind_result_mysqltime()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    @s.bind_result(Mysql::Time, Mysql::Time, Mysql::Time, Mysql::Time)
+    @s.execute
+    a = @s.fetch
+    assert_equal([Mysql::Time.new, Mysql::Time.new, Mysql::Time.new, Mysql::Time.new(2005,8,2,23,50,11)], a)
+  end
+
+  def test_bind_result_unknown()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    assert_raises(TypeError){@s.bind_result(Time, nil, nil, nil)}
+  end
+
+  def test_bind_result_unmatch_count()
+    @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+    @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+    @s.prepare("select * from t")
+    assert_raises(Mysql::Error){@s.bind_result(nil, nil)}
+  end
 
   def test_data_seek()
     @m.query("create temporary table t (i int)")

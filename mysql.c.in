@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.26 2005/07/31 16:48:41 tommy Exp $
+ *	$Id: mysql.c.in,v 1.27 2005/08/14 03:37:24 tommy Exp $
  */
 
 #include "ruby.h"
@@ -116,6 +116,7 @@ static void free_mysqlstmt_memory(struct mysql_stmt *s)
 	xfree(s->param.buffer);
 	s->param.buffer = NULL;
     }
+    s->param.n = 0;
     if (s->res) {
 	mysql_free_result(s->res);
 	s->res = NULL;
@@ -137,6 +138,7 @@ static void free_mysqlstmt_memory(struct mysql_stmt *s)
 	xfree(s->result.length);
 	s->result.length = NULL;
     }
+    s->result.n = 0;
 }
 
 static void free_mysqlstmt(struct mysql_stmt* s)
@@ -1247,6 +1249,38 @@ static VALUE stmt_attr_set(VALUE obj, VALUE opt, VALUE val)
 }
 #endif
 
+/*	bind_result(bind,...)	*/
+static enum enum_field_types buffer_type(MYSQL_FIELD *field);
+static VALUE stmt_bind_result(int argc, VALUE *argv, VALUE obj)
+{
+    struct mysql_stmt* s = DATA_PTR(obj);
+    int i;
+    MYSQL_FIELD *field;
+
+    check_stmt_closed(obj);
+    if (argc != s->result.n)
+	rb_raise(eMysql, "bind_result: result value count(%d) != number of argument(%d)", s->result.n, argc);
+    for (i = 0; i < argc; i++) {
+	if (argv[i] == Qnil || argv[i] == rb_cNilClass) {
+	    field = mysql_fetch_fields(s->res);
+	    s->result.bind[i].buffer_type = buffer_type(&field[i]);
+	}
+	else if (argv[i] == rb_cString)
+	    s->result.bind[i].buffer_type = MYSQL_TYPE_STRING;
+	else if (argv[i] == rb_cNumeric || argv[i] == rb_cInteger || argv[i] == rb_cFixnum)
+	    s->result.bind[i].buffer_type = MYSQL_TYPE_LONGLONG;
+	else if (argv[i] == rb_cFloat)
+	    s->result.bind[i].buffer_type = MYSQL_TYPE_DOUBLE;
+	else if (argv[i] == cMysqlTime)
+	    s->result.bind[i].buffer_type = MYSQL_TYPE_DATETIME;
+	else
+	    rb_raise(rb_eTypeError, "unrecognized class: %s", RSTRING(rb_inspect(argv[i]))->ptr);
+	if (mysql_stmt_bind_result(s->stmt, s->result.bind))
+	    mysql_stmt_raise(s->stmt);
+    }
+    return obj;
+}
+
 /*	close()	*/
 static VALUE stmt_close(VALUE obj)
 {
@@ -2074,6 +2108,7 @@ void Init_mysql(void)
     rb_define_method(cMysqlStmt, "attr_get", stmt_attr_get, 1);
     rb_define_method(cMysqlStmt, "attr_set", stmt_attr_set, 2);
 #endif
+    rb_define_method(cMysqlStmt, "bind_result", stmt_bind_result, -1);
     rb_define_method(cMysqlStmt, "close", stmt_close, 0);
     rb_define_method(cMysqlStmt, "data_seek", stmt_data_seek, 1);
     rb_define_method(cMysqlStmt, "each", stmt_each, 0);

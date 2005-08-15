@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- $Id: README_ja.html,v 1.18 2005/08/02 10:49:41 tommy Exp $ -->
+<!-- $Id: README_ja.html,v 1.19 2005/08/16 00:23:11 tommy Exp $ -->
 <html>
   <head>
     <meta http-equiv="content-style-type" content="text/css">
@@ -687,7 +687,7 @@ st = my.prepare("insert into tblname (col1,col2,col3) values (?,?,?)")
 st.execute("abc",123,Time.now)
 st.prepare("select col1,col2,col3 from tblname")
 st.execute
-st.fetch  # => ["abc", 123, &lt;Mysql::Time:2005-07-24 23:52:55&gt;]
+st.fetch  # => ["abc", 123, #&lt;Mysql::Time:2005-07-24 23:52:55&gt;]
 st.close
 </pre>
 
@@ -698,6 +698,15 @@ st.close
 	<p>
 	  影響された行数を返します。
 	</p>
+
+      <dt>bind_result(class, ...)
+      <dd>
+        <p>
+          結果を返すクエリの場合に、取り出される値のクラスを指定します。
+          指定できるクラスは、Numeric, Integer, Fixnum, Float, Mysql::Time です。
+          nil を指定すると、自動判別します。
+          bind_result を実行しない場合は自動判別します。
+        </p>
 
       <dt>close()
       <dd>
@@ -882,6 +891,13 @@ st.close
 
     <h2>履歴</h2>
     <dl>
+      <dt>2005-08-16
+      <dd>
+        version 2.7-beta3
+        <ul>
+          <li>Mysql::Stmt#bind_result 追加
+        </ul>
+
       <dt>2005-08-02
       <dd>
 	version 2.7-beta2
@@ -1204,7 +1220,7 @@ st.close
     <address><a href="mailto:tommy@tmtm.org">TOMITA Masahiro</a></address>
 <!-- Created: Sun Aug 29 11:52:09 JST 2004 -->
 <!-- hhmts start -->
-Last modified: Tue Aug  2 19:49:18 JST 2005
+Last modified: Tue Aug 16 09:22:18 JST 2005
 <!-- hhmts end -->
   </body>
 </html>
