@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.27 2005/08/14 03:37:24 tommy Exp $
+ *	$Id: mysql.c.in,v 1.30 2005/08/21 15:15:38 tommy Exp $
  */
 
 #include "ruby.h"
@@ -67,6 +67,7 @@ struct mysql_res {
     char freed;
 };
 
+#if MYSQL_VERSION_ID >= 40101
 struct mysql_stmt {
     MYSQL_STMT *stmt;
     char closed;
@@ -84,6 +85,7 @@ struct mysql_stmt {
     } result;
     MYSQL_RES *res;
 };
+#endif
 
 /*	free Mysql class object		*/
 static void free_mysql(struct mysql* my)
@@ -102,6 +104,7 @@ static void free_mysqlres(struct mysql_res* resp)
     free(resp);
 }
 
+#if MYSQL_VERSION_ID >= 40101
 static void free_mysqlstmt_memory(struct mysql_stmt *s)
 {
     if (s->param.bind) {
@@ -150,6 +153,7 @@ static void free_mysqlstmt(struct mysql_stmt* s)
 	mysql_free_result(s->res);
     free(s);
 }
+#endif
 
 static void mysql_raise(MYSQL* m)
 {
@@ -350,6 +354,9 @@ static VALUE options(int argc, VALUE* argv, VALUE obj)
 #endif
 #if MYSQL_VERSION_ID >= 40100
     case MYSQL_SHARED_MEMORY_BASE_NAME:
+#endif
+#if MYSQL_VERSION_ID >= 40101
+    case MYSQL_SET_CLIENT_IP:
 #endif
 	if (val == Qnil)
 	    rb_raise(rb_eArgError, "wrong # of arguments(1 for 2)");
@@ -697,7 +704,7 @@ static VALUE query(VALUE obj, VALUE sql)
     Check_Type(sql, T_STRING);
     if (rb_block_given_p()) {
 #if MYSQL_VERSION_ID >= 40101
-	if (mysql_set_server_option(m, MYSQL_OPTION_MULTI_STATEMENTS_ON) != 0)
+        if (mysql_get_server_version(m) >= 40101 && mysql_set_server_option(m, MYSQL_OPTION_MULTI_STATEMENTS_ON) != 0)
 	    mysql_raise(m);
 #endif
 	if (mysql_real_query(m, RSTRING(sql)->ptr, RSTRING(sql)->len) != 0)
@@ -1387,10 +1394,12 @@ static VALUE stmt_execute(int argc, VALUE *argv, VALUE obj)
 	    if (s->result.bind[i].buffer_type == MYSQL_TYPE_STRING ||
 		s->result.bind[i].buffer_type == MYSQL_TYPE_BLOB) {
 		s->result.bind[i].buffer = xmalloc(field[i].max_length);
+                memset(s->result.bind[i].buffer, 0, field[i].max_length);
 		s->result.bind[i].buffer_length = field[i].max_length;
 	    } else {
 		s->result.bind[i].buffer = xmalloc(sizeof(MYSQL_TIME));
 		s->result.bind[i].buffer_length = sizeof(MYSQL_TIME);
+                memset(s->result.bind[i].buffer, 0, sizeof(MYSQL_TIME));
 	    }
 	}
 	if (mysql_stmt_bind_result(s->stmt, s->result.bind))
@@ -1411,7 +1420,7 @@ static VALUE stmt_fetch(VALUE obj)
     r = mysql_stmt_fetch(s->stmt);
     if (r == MYSQL_NO_DATA)
 	return Qnil;
-    if (r)
+    if (r == 1)
 	mysql_stmt_raise(s->stmt);
 
     ret = rb_ary_new2(s->result.n);
@@ -1549,6 +1558,9 @@ static enum enum_field_types buffer_type(MYSQL_FIELD *field)
     case FIELD_TYPE_SET:
     case FIELD_TYPE_ENUM:
     case FIELD_TYPE_DECIMAL:
+#if MYSQL_VERSION_ID >= 50003
+    case FIELD_TYPE_NEWDECIMAL:
+#endif
 	return MYSQL_TYPE_STRING;
     case FIELD_TYPE_BLOB:
 	return MYSQL_TYPE_BLOB;
@@ -1937,6 +1949,10 @@ void Init_mysql(void)
     rb_define_const(cMysql, "OPT_READ_TIMEOUT", INT2NUM(MYSQL_OPT_READ_TIMEOUT));
     rb_define_const(cMysql, "OPT_WRITE_TIMEOUT", INT2NUM(MYSQL_OPT_WRITE_TIMEOUT));
     rb_define_const(cMysql, "SECURE_AUTH", INT2NUM(MYSQL_SECURE_AUTH));
+    rb_define_const(cMysql, "OPT_GUESS_CONNECTION", INT2NUM(MYSQL_OPT_GUESS_CONNECTION));
+    rb_define_const(cMysql, "OPT_USE_EMBEDDED_CONNECTION", INT2NUM(MYSQL_OPT_USE_EMBEDDED_CONNECTION));
+    rb_define_const(cMysql, "OPT_USE_REMOTE_CONNECTION", INT2NUM(MYSQL_OPT_USE_REMOTE_CONNECTION));
+    rb_define_const(cMysql, "SET_CLIENT_IP", INT2NUM(MYSQL_SET_CLIENT_IP));
 #endif
     rb_define_const(cMysql, "REFRESH_GRANT", INT2NUM(REFRESH_GRANT));
     rb_define_const(cMysql, "REFRESH_LOG", INT2NUM(REFRESH_LOG));
