@@ -1,6 +1,9 @@
 require 'mkmf'
 
-if mc = with_config('mysql-config') then
+if /mswin32/ =~ RUBY_PLATFORM
+  inc, lib = dir_config('mysql')
+  exit 1 unless have_library("libmysql")
+elsif mc = with_config('mysql-config') then
   mc = 'mysql_config' if mc == true
   cflags = `#{mc} --cflags`.chomp
   exit 1 if $? != 0
@@ -10,7 +13,7 @@ if mc = with_config('mysql-config') then
   $libs = libs + " " + $libs
 else
   inc, lib = dir_config('mysql', '/usr/local')
-  libs = ['m', 'z', 'socket', 'nsl']
+  libs = ['m', 'z', 'socket', 'nsl', 'mygcc']
   while not find_library('mysqlclient', 'mysql_query', lib, "#{lib}/mysql") do
     exit 1 if libs.empty?
     have_library(libs.shift)
@@ -35,6 +38,9 @@ if defined? cpp_command then
   cpp = Config::expand(cpp_command(''))
 else
   cpp = Config::expand sprintf(CPP, $CPPFLAGS, $CFLAGS, '')
+end
+if /mswin32/ =~ RUBY_PLATFORM && !/-E/.match(cpp)
+  cpp << " -E"
 end
 unless system "#{cpp} > confout" then
   exit 1
