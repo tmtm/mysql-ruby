@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.36 2006-10-29 10:34:31 tommy Exp $
+ *	$Id: mysql.c.in,v 1.38 2006-12-20 05:31:52 tommy Exp $
  */
 
 #include "ruby.h"
@@ -14,7 +14,7 @@
 #include <mysql/mysqld_error.h>
 #endif
 
-#define MYSQL_RUBY_VERSION 20702
+#define MYSQL_RUBY_VERSION 20703
 
 #define GC_STORE_RESULT_LIMIT 20
 
@@ -697,6 +697,7 @@ static VALUE res_free(VALUE);
 /*	query(sql)	*/
 static VALUE query(VALUE obj, VALUE sql)
 {
+    int loop = 0;
     MYSQL* m = GetHandler(obj);
     Check_Type(sql, T_STRING);
     if (rb_block_given_p()) {
@@ -715,11 +716,12 @@ static VALUE query(VALUE obj, VALUE sql)
 		VALUE robj = mysqlres2obj(res);
 		rb_ensure(rb_yield, robj, res_free, robj);
 	    }
-	}
 #if MYSQL_VERSION_ID >= 40101
-	while (mysql_next_result(m) != -1);
+	    if ((loop = mysql_next_result(m)) > 0)
+        	mysql_raise(m);
+	} while (loop == 0);
 #else
-	while (0);
+	} while (0);
 #endif
 	return obj;
     }

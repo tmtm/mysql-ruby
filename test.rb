@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb,v 1.21 2006-10-29 06:31:30 tommy Exp $
+# $Id: test.rb,v 1.23 2006-12-20 05:31:52 tommy Exp $
 
 require "test/unit"
 require "./mysql.o"
@@ -16,7 +16,7 @@ class TC_Mysql < Test::Unit::TestCase
   end
 
   def test_version()
-    assert_equal(20702, Mysql::VERSION)
+    assert_equal(20703, Mysql::VERSION)
   end
 
   def test_init()
@@ -48,11 +48,11 @@ class TC_Mysql < Test::Unit::TestCase
   end
 
   def test_get_client_info()
-    assert_match(/^\d.\d+.\d+(-.*)?$/, Mysql.get_client_info())
+    assert_match(/^\d.\d+.\d+[a-z]?(-.*)?$/, Mysql.get_client_info())
   end
 
   def test_client_info()
-    assert_match(/^\d.\d+.\d+(-.*)?$/, Mysql.client_info())
+    assert_match(/^\d.\d+.\d+[a-z]?(-.*)?$/, Mysql.client_info())
   end
 
   def test_options()
@@ -149,13 +149,23 @@ class TC_Mysql2 < Test::Unit::TestCase
         assert_equal(1, res.num_rows)
         assert_equal(expect.shift, res.fetch_row)
       }
+      assert(expect.empty?)
       expect = [["1","2","3"], ["4","5","6"]]
       assert_raises(Mysql::Error) {
-        @m.query("select 1,2,; select 4,5,6; hoge") {|res|
+        @m.query("select 1,2,3; hoge; select 4,5,6") {|res|
           assert_equal(1, res.num_rows)
           assert_equal(expect.shift, res.fetch_row)
         }
       }
+      assert_equal(1, expect.size)
+      expect = [["1","2","3"], ["4","5","6"]]
+      assert_raises(Mysql::Error) {
+        @m.query("select 1,2,3; select 4,5,6; hoge") {|res|
+          assert_equal(1, res.num_rows)
+          assert_equal(expect.shift, res.fetch_row)
+        }
+      }
+      assert(expect.empty?)
     end
   end
 
