@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.38 2006-12-20 05:31:52 tommy Exp $
+ *	$Id: mysql.c.in,v 1.40 2007-08-21 23:20:37 tommy Exp $
  */
 
 #include "ruby.h"
@@ -14,7 +14,7 @@
 #include <mysql/mysqld_error.h>
 #endif
 
-#define MYSQL_RUBY_VERSION 20703
+#define MYSQL_RUBY_VERSION 20704
 
 #define GC_STORE_RESULT_LIMIT 20
 
@@ -129,6 +129,7 @@ static void free_mysqlstmt_memory(struct mysql_stmt *s)
 	for (i = 0; i < s->result.n; i++) {
 	    if (s->result.bind[i].buffer)
 		xfree(s->result.bind[i].buffer);
+            s->result.bind[i].buffer = NULL;
 	}
 	xfree(s->result.bind);
 	s->result.bind = NULL;
@@ -142,6 +143,19 @@ static void free_mysqlstmt_memory(struct mysql_stmt *s)
 	s->result.length = NULL;
     }
     s->result.n = 0;
+}
+
+static void free_execute_memory(struct mysql_stmt *s)
+{
+    if (s->res && s->result.bind) {
+	int i;
+	for (i = 0; i < s->result.n; i++) {
+	    if (s->result.bind[i].buffer)
+		xfree(s->result.bind[i].buffer);
+            s->result.bind[i].buffer = NULL;
+	}
+    }
+    mysql_stmt_free_result(s->stmt);
 }
 
 static void free_mysqlstmt(struct mysql_stmt* s)
@@ -700,6 +714,9 @@ static VALUE query(VALUE obj, VALUE sql)
     int loop = 0;
     MYSQL* m = GetHandler(obj);
     Check_Type(sql, T_STRING);
+    if (GetMysqlStruct(obj)->connection == Qfalse) {
+        rb_raise(eMysql, "query: not connected");
+    }
     if (rb_block_given_p()) {
 #if MYSQL_VERSION_ID >= 40101
         if (mysql_get_server_version(m) >= 40101 && mysql_set_server_option(m, MYSQL_OPTION_MULTI_STATEMENTS_ON) != 0)
@@ -1315,6 +1332,7 @@ static VALUE stmt_execute(int argc, VALUE *argv, VALUE obj)
     int i;
 
     check_stmt_closed(obj);
+    free_execute_memory(s);
     if (s->param.n != argc)
 	rb_raise(eMysql, "execute: param_count(%d) != number of argument(%d)", s->param.n, argc);
     memset(s->param.bind, 0, sizeof(*(s->param.bind))*argc);
@@ -1489,10 +1507,6 @@ static VALUE stmt_free_result(VALUE obj)
 {
     struct mysql_stmt* s = DATA_PTR(obj);
     check_stmt_closed(obj);
-    if (s->res) {
-	mysql_free_result(s->res);
-	s->res = NULL;
-    }
     if (mysql_stmt_free_result(s->stmt))
 	mysql_stmt_raise(s->stmt);
     return obj;
