@@ -62,7 +62,7 @@ error_syms.uniq!
 
 newf = File::open('mysql.c', 'w')
 IO::foreach('mysql.c.in') do |l|
-  newf.puts l
+  newf.puts l.gsub(/%RUBY_VERSION%/, RUBY_VERSION.gsub(/\D/, ''))
   if l =~ /\/\* Mysql::Error constant \*\// then
     error_syms.each do |s|
       newf.puts "    rb_define_const(eMysql, \"#{s}\", INT2NUM(#{s}));"

@@ -1,9 +1,9 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in,v 1.40 2007-08-21 23:20:37 tommy Exp $
+ *	$Id: mysql.c.in 207 2007-12-26 16:55:52Z tommy $
  */
 
 #include "ruby.h"
-#include "version.h"
+#define RUBY_VERSION_CODE %RUBY_VERSION%
 #ifdef HAVE_MYSQL_H
 #include <mysql.h>
 #include <errmsg.h>
@@ -14,7 +14,7 @@
 #include <mysql/mysqld_error.h>
 #endif
 
-#define MYSQL_RUBY_VERSION 20704
+#define MYSQL_RUBY_VERSION 20800
 
 #define GC_STORE_RESULT_LIMIT 20
 
@@ -184,6 +184,8 @@ static VALUE mysqlres2obj(MYSQL_RES* res)
     VALUE obj;
     struct mysql_res* resp;
     obj = Data_Make_Struct(cMysqlRes, struct mysql_res, 0, free_mysqlres, resp);
+    rb_iv_set(obj, "colname", Qnil);
+    rb_iv_set(obj, "tblcolname", Qnil);
     resp->res = res;
     resp->freed = Qfalse;
     rb_obj_call_init(obj, 0, NULL);
@@ -276,9 +278,15 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
 static VALUE escape_string(VALUE klass, VALUE str)
 {
     VALUE ret;
+    unsigned long len;
     Check_Type(str, T_STRING);
-    ret = rb_str_new(0, (RSTRING(str)->len)*2+1);
-    RSTRING(ret)->len = mysql_escape_string(RSTRING(ret)->ptr, RSTRING(str)->ptr, RSTRING(str)->len);
+    ret = rb_str_new(0, (RSTRING_LEN(str))*2+1);
+    len = mysql_escape_string(RSTRING_PTR(ret), RSTRING_PTR(str), RSTRING_LEN(str));
+#if RUBY_VERSION_CODE < 190
+    RSTRING(ret)->len = len;
+#else
+    rb_str_set_len(ret, len);
+#endif
     return ret;
 }
 
@@ -410,9 +418,15 @@ static VALUE real_escape_string(VALUE obj, VALUE str)
 {
     MYSQL* m = GetHandler(obj);
     VALUE ret;
+    unsigned long len;
     Check_Type(str, T_STRING);
-    ret = rb_str_new(0, (RSTRING(str)->len)*2+1);
-    RSTRING(ret)->len = mysql_real_escape_string(m, RSTRING(ret)->ptr, RSTRING(str)->ptr, RSTRING(str)->len);
+    ret = rb_str_new(0, (RSTRING_LEN(str))*2+1);
+    len = mysql_real_escape_string(m, RSTRING_PTR(ret), RSTRING_PTR(str), RSTRING_LEN(str));
+#if RUBY_VERSION_CODE < 190
+    RSTRING(ret)->len = len;
+#else
+    rb_str_set_len(ret, len);
+#endif
     return ret;
 }
 #endif
@@ -718,11 +732,7 @@ static VALUE query(VALUE obj, VALUE sql)
         rb_raise(eMysql, "query: not connected");
     }
     if (rb_block_given_p()) {
-#if MYSQL_VERSION_ID >= 40101
-        if (mysql_get_server_version(m) >= 40101 && mysql_set_server_option(m, MYSQL_OPTION_MULTI_STATEMENTS_ON) != 0)
-	    mysql_raise(m);
-#endif
-	if (mysql_real_query(m, RSTRING(sql)->ptr, RSTRING(sql)->len) != 0)
+	if (mysql_real_query(m, RSTRING_PTR(sql), RSTRING_LEN(sql)) != 0)
 	    mysql_raise(m);
 	do {
 	    MYSQL_RES* res = mysql_store_result(m);
@@ -742,7 +752,7 @@ static VALUE query(VALUE obj, VALUE sql)
 #endif
 	return obj;
     }
-    if (mysql_real_query(m, RSTRING(sql)->ptr, RSTRING(sql)->len) != 0)
+    if (mysql_real_query(m, RSTRING_PTR(sql), RSTRING_LEN(sql)) != 0)
 	mysql_raise(m);
     if (GetMysqlStruct(obj)->query_with_result == Qfalse)
 	return obj;
@@ -1036,19 +1046,40 @@ static VALUE fetch_hash2(VALUE obj, VALUE with_table)
     MYSQL_FIELD* fields = mysql_fetch_fields(res);
     unsigned int i;
     VALUE hash;
+    VALUE colname;
     if (row == NULL)
 	return Qnil;
     hash = rb_hash_new();
+
+    if (with_table == Qnil || with_table == Qfalse) {
+        colname = rb_iv_get(obj, "colname");
+        if (colname == Qnil) {
+            colname = rb_ary_new2(n);
+            for (i=0; i<n; i++) {
+                VALUE s = rb_tainted_str_new2(fields[i].name);
+                rb_obj_freeze(s);
+                rb_ary_store(colname, i, s);
+            }
+            rb_obj_freeze(colname);
+            rb_iv_set(obj, "colname", colname);
+        }
+    } else {
+        colname = rb_iv_get(obj, "tblcolname");
+        if (colname == Qnil) {
+            colname = rb_ary_new2(n);
+            for (i=0; i<n; i++) {
+                int len = strlen(fields[i].table)+strlen(fields[i].name)+1;
+                VALUE s = rb_tainted_str_new(NULL, len);
+                snprintf(RSTRING_PTR(s), len+1, "%s.%s", fields[i].table, fields[i].name);
+                rb_obj_freeze(s);
+                rb_ary_store(colname, i, s);
+            }
+            rb_obj_freeze(colname);
+            rb_iv_set(obj, "tblcolname", colname);
+        }
+    }
     for (i=0; i<n; i++) {
-	VALUE col;
-	if (with_table == Qnil || with_table == Qfalse)
-	    col = rb_tainted_str_new2(fields[i].name);
-	else {
-	    col = rb_tainted_str_new(fields[i].table, strlen(fields[i].table)+strlen(fields[i].name)+1);
-	    RSTRING(col)->ptr[strlen(fields[i].table)] = '.';
-	    strcpy(RSTRING(col)->ptr+strlen(fields[i].table)+1, fields[i].name);
-	}
-	rb_hash_aset(hash, col, row[i]? rb_tainted_str_new(row[i], lengths[i]): Qnil);
+        rb_hash_aset(hash, rb_ary_entry(colname, i), row[i]? rb_tainted_str_new(row[i], lengths[i]): Qnil);
     }
     return hash;
 }
@@ -1170,8 +1201,8 @@ static VALUE field_hash(VALUE obj)
 static VALUE field_inspect(VALUE obj)
 {
     VALUE n = rb_iv_get(obj, "name");
-    VALUE s = rb_str_new(0, RSTRING(n)->len + 16);
-    sprintf(RSTRING(s)->ptr, "#<Mysql::Field:%s>", RSTRING(n)->ptr);
+    VALUE s = rb_str_new(0, RSTRING_LEN(n) + 16);
+    sprintf(RSTRING_PTR(s), "#<Mysql::Field:%s>", RSTRING_PTR(n));
     return s;
 }
 
@@ -1297,7 +1328,7 @@ static VALUE stmt_bind_result(int argc, VALUE *argv, VALUE obj)
 	else if (argv[i] == cMysqlTime)
 	    s->result.bind[i].buffer_type = MYSQL_TYPE_DATETIME;
 	else
-	    rb_raise(rb_eTypeError, "unrecognized class: %s", RSTRING(rb_inspect(argv[i]))->ptr);
+	    rb_raise(rb_eTypeError, "unrecognized class: %s", RSTRING_PTR(rb_inspect(argv[i])));
 	if (mysql_stmt_bind_result(s->stmt, s->result.bind))
 	    mysql_stmt_raise(s->stmt);
     }
@@ -1359,9 +1390,9 @@ static VALUE stmt_execute(int argc, VALUE *argv, VALUE obj)
 	    break;
 	case T_STRING:
 	    s->param.bind[i].buffer_type = MYSQL_TYPE_STRING;
-	    s->param.bind[i].buffer = RSTRING(argv[i])->ptr;
-	    s->param.bind[i].buffer_length = RSTRING(argv[i])->len;
-	    s->param.length[i] = RSTRING(argv[i])->len;
+	    s->param.bind[i].buffer = RSTRING_PTR(argv[i]);
+	    s->param.bind[i].buffer_length = RSTRING_LEN(argv[i]);
+	    s->param.length[i] = RSTRING_LEN(argv[i]);
 	    s->param.bind[i].length = &(s->param.length[i]);
 	    break;
 	default:
@@ -1594,7 +1625,7 @@ static VALUE stmt_prepare(VALUE obj, VALUE query)
     free_mysqlstmt_memory(s);
     check_stmt_closed(obj);
     Check_Type(query, T_STRING);
-    if (mysql_stmt_prepare(s->stmt, RSTRING(query)->ptr, RSTRING(query)->len))
+    if (mysql_stmt_prepare(s->stmt, RSTRING_PTR(query), RSTRING_LEN(query)))
 	mysql_stmt_raise(s->stmt);
 
     n = mysql_stmt_param_count(s->stmt);
@@ -1686,7 +1717,7 @@ static VALUE stmt_send_long_data(VALUE obj, VALUE col, VALUE data)
 	if (mysql_stmt_bind_param(s->stmt, s->param.bind))
 	    mysql_stmt_raise(s->stmt);
     }
-    if (mysql_stmt_send_long_data(s->stmt, c, RSTRING(data)->ptr, RSTRING(data)->len))
+    if (mysql_stmt_send_long_data(s->stmt, c, RSTRING_PTR(data), RSTRING_LEN(data)))
 	mysql_stmt_raise(s->stmt);
     return obj;
 }

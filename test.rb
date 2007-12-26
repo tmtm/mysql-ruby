@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb,v 1.24 2007-08-21 23:29:37 tommy Exp $
+# $Id: test.rb 207 2007-12-26 16:55:52Z tommy $
 
 require "test/unit"
 require "./mysql.o"
@@ -16,7 +16,7 @@ class TC_Mysql < Test::Unit::TestCase
   end
 
   def test_version()
-    assert_equal(20704, Mysql::VERSION)
+    assert_equal(20800, Mysql::VERSION)
   end
 
   def test_init()
@@ -144,6 +144,7 @@ class TC_Mysql2 < Test::Unit::TestCase
 
   def test_query_with_block()
     if @m.server_version >= 40100 then
+      @m.set_server_option(Mysql::OPTION_MULTI_STATEMENTS_ON)
       expect = [["1","2","3"], ["4","5","6"]]
       @m.query("select 1,2,3; select 4,5,6") {|res|
         assert_equal(1, res.num_rows)
@@ -167,6 +168,13 @@ class TC_Mysql2 < Test::Unit::TestCase
       }
       assert(expect.empty?)
     end
+  end
+
+  def test_query_with_block_single()
+    @m.query("select 1,2,3") {|res|
+      assert_equal(1, res.num_rows)
+      assert_equal(["1","2","3"], res.fetch_row)
+    }
   end
 
   def test_set_server_option()
