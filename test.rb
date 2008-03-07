@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb,v 1.24 2007-08-21 23:29:37 tommy Exp $
+# $Id: test.rb 213 2008-03-07 16:30:47Z tommy $
 
 require "test/unit"
 require "./mysql.o"
@@ -16,7 +16,7 @@ class TC_Mysql < Test::Unit::TestCase
   end
 
   def test_version()
-    assert_equal(20704, Mysql::VERSION)
+    assert_equal(20705, Mysql::VERSION)
   end
 
   def test_init()
@@ -271,7 +271,7 @@ class TC_MysqlRes < Test::Unit::TestCase
     @res.data_seek(1)
     assert_equal(["2","defg"], @res.fetch_row)
   end
-  
+
   def test_row_seek()
     assert_equal(["1","abc"], @res.fetch_row)
     pos = @res.row_tell
@@ -484,7 +484,7 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
   end
 =end
 
-  def test_bind_result_nil() 
+  def test_bind_result_nil()
     if @m.server_version >= 40100 then
       @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
       @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
@@ -537,7 +537,7 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
       @s.execute
       a = @s.fetch
       if Mysql.client_version < 50000 then
-        assert_equal([123, 9, 1, 2005], a) 
+        assert_equal([123, 9, 1, 2005], a)
       else
         assert_equal([123, 9, 1, 20050802235011.0], a)
       end
@@ -868,17 +868,17 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
       if @m.server_version >= 50000 then
         assert_equal([0], @s.fetch)
       else
-        assert_equal([-1], @s.fetch)                   # MySQL & MySQL/Ruby problem
+        assert_equal([18446744073709551615], @s.fetch) # MySQL problem
       end
       assert_equal([9223372036854775807], @s.fetch)
-      if @m.server_version < 50000 then
-        assert_equal([-9223372036854775808], @s.fetch) # MySQL problem
-      else
+      if @m.server_version >= 50000 then
         assert_equal([0], @s.fetch)
+      else
+        assert_equal([9223372036854775808], @s.fetch) # MySQL problem
       end
-      assert_equal([-1], @s.fetch)                   # MySQL/Ruby problem
+      assert_equal([18446744073709551615], @s.fetch)
       assert_equal([0], @s.fetch)
-      assert_equal([-1], @s.fetch)                   # MySQL/Ruby problem
+      assert_equal([18446744073709551615], @s.fetch)
     end
   end
 
@@ -1346,9 +1346,9 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
     if @m.server_version >= 40100 then
       @s.prepare("select 1")
       if @m.client_version >= 50000 then
-        assert_equal("00000", @s.sqlstate) 
+        assert_equal("00000", @s.sqlstate)
       else
-        assert_equal("", @s.sqlstate) 
+        assert_equal("", @s.sqlstate)
       end
       assert_raises(Mysql::Error){@s.prepare("hogehoge")}
       assert_equal("42000", @s.sqlstate)
@@ -1360,7 +1360,7 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
     @s.store_result()
   end
 =end
-  
+
 end if Mysql.client_version >= 40100
 
 class TC_MysqlTime < Test::Unit::TestCase

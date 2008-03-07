@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- $Id: README_ja.html,v 1.25 2007-08-21 23:20:37 tommy Exp $ -->
+<!-- $Id: README_ja.html 214 2008-03-07 16:36:35Z tommy $ -->
 <html>
   <head>
     <meta http-equiv="content-style-type" content="text/css">
@@ -21,8 +21,8 @@
 
     <h2>必要なもの</h2>
     <ul>
-      <li>MySQL 5.0.27
-      <li>Ruby 1.8.5
+      <li>MySQL 5.0.51a
+      <li>Ruby 1.8.6
     </ul>
     <p>
       これら以外でも make できるかもしれませんが、確認してません。
@@ -895,6 +895,29 @@ st.close
 
     <h2>履歴</h2>
     <dl>
+      <dt>2008-03-08
+      <dd>
+        version 2.8pre2
+        <ul>
+          <li>64bit 環境で Mysql::Stmt#fetch で数値が壊れる問題を修正。
+        </ul>
+
+      <dt>2008-03-08
+      <dd>
+        version 2.7.5
+        <ul>
+          <li>64bit 環境で Mysql::Stmt#fetch で数値が壊れる問題を修正。
+        </ul>
+
+      <dt>2007-12-26
+      <dd>
+        version 2.8pre1
+        <ul>
+          <li>Ruby 1.9.0 対応
+          <li>Incompat: Mysql::Result#each_hash が行毎にカラム名文字列を生成するのではなく、共有するようにした。
+          <li>Incompat: ブロックつき Mysql#query で自動的にマルチステートメントモードにならないようにした。
+        </ul>
+
       <dt>2007-08-22
       <dd>
         version 2.7.4
