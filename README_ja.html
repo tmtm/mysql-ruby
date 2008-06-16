@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- $Id: README_ja.html 216 2008-03-07 16:39:14Z tommy $ -->
+<!-- $Id: README_ja.html 221 2008-06-17 05:47:28Z tommy $ -->
 <html>
   <head>
     <meta http-equiv="content-style-type" content="text/css">
@@ -899,15 +899,17 @@ st.close
 
     <h2>履歴</h2>
     <dl>
-      <dt>2008-03-08
+      <dt>2008-06-17
       <dd>
-        version 2.8pre2
+        version 2.8pre3<br>
+        version 2.7.6
         <ul>
-          <li>64bit 環境で Mysql::Stmt#fetch で数値が壊れる問題を修正。
+          <li>64bit 環境で Mysql::Stmt#execute で大きな数値(2**30 以上)でエラーになる問題を修正。
         </ul>
 
       <dt>2008-03-08
       <dd>
+        version 2.8pre2<br>
         version 2.7.5
         <ul>
           <li>64bit 環境で Mysql::Stmt#fetch で数値が壊れる問題を修正。
@@ -1292,7 +1294,7 @@ st.close
     <address><a href="mailto:tommy@tmtm.org">TOMITA Masahiro</a></address>
 <!-- Created: Sun Aug 29 11:52:09 JST 2004 -->
 <!-- hhmts start -->
-Last modified: Wed Dec 20 14:31:13 JST 2006
+Last modified: Tue Jun 17 14:45:09 JST 2008
 <!-- hhmts end -->
   </body>
 </html>

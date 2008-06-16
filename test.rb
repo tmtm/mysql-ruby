@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb 210 2008-03-07 16:16:28Z tommy $
+# $Id: test.rb 218 2008-06-17 05:36:44Z tommy $
 
 require "test/unit"
 require "./mysql.o"
@@ -686,6 +686,17 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
       @s.prepare("select * from t")
       @s.execute
       assert_equal([nil, "hoge", Mysql::Time.new(2005,7,19,23,53,0)], @s.fetch)
+    end
+  end
+
+  def test_execute5()
+    if @m.server_version >= 40100 then
+      [30, 31, 32, 62, 63].each do |i|
+        v, = @m.prepare("select cast(? as signed)").execute(2**i-1).fetch
+        assert_equal(2**i-1, v)
+        v, = @m.prepare("select cast(? as signed)").execute(-(2**i)).fetch
+        assert_equal(-(2**i), v)
+      end
     end
   end
 

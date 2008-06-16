@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in 210 2008-03-07 16:16:28Z tommy $
+ *	$Id: mysql.c.in 225 2008-06-17 06:56:00Z tommy $
  */
 
 #include "ruby.h"
@@ -1372,9 +1372,15 @@ static VALUE stmt_execute(int argc, VALUE *argv, VALUE obj)
                 s->param.bind[i].buffer_type = MYSQL_TYPE_NULL;
                 break;
             case T_FIXNUM:
+#if SIZEOF_INT < SIZEOF_LONG
+                s->param.bind[i].buffer_type = MYSQL_TYPE_LONGLONG;
+                s->param.bind[i].buffer = &(s->param.buffer[i]);
+                *(LONG_LONG*)(s->param.bind[i].buffer) = FIX2LONG(argv[i]);
+#else
                 s->param.bind[i].buffer_type = MYSQL_TYPE_LONG;
                 s->param.bind[i].buffer = &(s->param.buffer[i]);
                 *(int*)(s->param.bind[i].buffer) = FIX2INT(argv[i]);
+#endif
                 break;
             case T_BIGNUM:
                 s->param.bind[i].buffer_type = MYSQL_TYPE_LONGLONG;
@@ -1516,7 +1522,7 @@ static VALUE stmt_fetch(VALUE obj)
                 if (s->result.bind[i].is_unsigned)
                     v = UINT2NUM(*(unsigned char *)s->result.bind[i].buffer);
                 else
-                    v = INT2NUM(*(char *)s->result.bind[i].buffer);
+                    v = INT2NUM(*(signed char *)s->result.bind[i].buffer);
                 break;
             case MYSQL_TYPE_SHORT:
             case MYSQL_TYPE_YEAR:
