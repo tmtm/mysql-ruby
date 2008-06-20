@@ -1,9 +1,18 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in 225 2008-06-17 06:56:00Z tommy $
+ *	$Id: mysql.c 229 2008-06-20 07:44:04Z tommy $
  */
 
-#include "ruby.h"
-#define RUBY_VERSION_CODE %RUBY_VERSION%
+#include <ruby.h>
+#ifndef RSTRING_PTR
+#define RSTRING_PTR(str) RSTRING(str)->ptr
+#endif
+#ifndef RSTRING_LEN
+#define RSTRING_LEN(str) RSTRING(str)->len
+#endif
+#ifndef HAVE_RB_STR_SET_LEN
+#define rb_str_set_len(str, length) (RSTRING_LEN(str) = (length))
+#endif
+
 #ifdef HAVE_MYSQL_H
 #include <mysql.h>
 #include <errmsg.h>
@@ -17,22 +26,6 @@
 #define MYSQL_RUBY_VERSION 20800
 
 #define GC_STORE_RESULT_LIMIT 20
-
-#ifndef Qtrue		/* ruby 1.2.x ? */
-#define	Qtrue		TRUE
-#define	Qfalse		FALSE
-#define	rb_exc_raise	rb_raise
-#define	rb_exc_new2	exc_new2
-#define	rb_str_new	str_new
-#define	rb_str_new2	str_new2
-#define	rb_ary_new2	ary_new2
-#define	rb_ary_store	ary_store
-#define	rb_obj_alloc	obj_alloc
-#define	rb_hash_new	hash_new
-#define	rb_hash_aset	hash_aset
-#define	rb_eStandardError	eStandardError
-#define	rb_cObject	cObject
-#endif
 
 #if MYSQL_VERSION_ID < 32224
 #define	mysql_field_count	mysql_num_fields
@@ -278,15 +271,9 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
 static VALUE escape_string(VALUE klass, VALUE str)
 {
     VALUE ret;
-    unsigned long len;
     Check_Type(str, T_STRING);
     ret = rb_str_new(0, (RSTRING_LEN(str))*2+1);
-    len = mysql_escape_string(RSTRING_PTR(ret), RSTRING_PTR(str), RSTRING_LEN(str));
-#if RUBY_VERSION_CODE < 190
-    RSTRING(ret)->len = len;
-#else
-    rb_str_set_len(ret, len);
-#endif
+    rb_str_set_len(ret, mysql_escape_string(RSTRING_PTR(ret), RSTRING_PTR(str), RSTRING_LEN(str)));
     return ret;
 }
 
@@ -418,15 +405,9 @@ static VALUE real_escape_string(VALUE obj, VALUE str)
 {
     MYSQL* m = GetHandler(obj);
     VALUE ret;
-    unsigned long len;
     Check_Type(str, T_STRING);
     ret = rb_str_new(0, (RSTRING_LEN(str))*2+1);
-    len = mysql_real_escape_string(m, RSTRING_PTR(ret), RSTRING_PTR(str), RSTRING_LEN(str));
-#if RUBY_VERSION_CODE < 190
-    RSTRING(ret)->len = len;
-#else
-    rb_str_set_len(ret, len);
-#endif
+    rb_str_set_len(ret, mysql_real_escape_string(m, RSTRING_PTR(ret), RSTRING_PTR(str), RSTRING_LEN(str)));
     return ret;
 }
 #endif
@@ -904,11 +885,7 @@ static VALUE query_with_result(VALUE obj)
 static VALUE query_with_result_set(VALUE obj, VALUE flag)
 {
     if (TYPE(flag) != T_TRUE && TYPE(flag) != T_FALSE)
-#if RUBY_VERSION_CODE < 160
-	TypeError("invalid type, required true or false.");
-#else
         rb_raise(rb_eTypeError, "invalid type, required true or false.");
-#endif
     GetMysqlStruct(obj)->query_with_result = flag;
     return flag;
 }
@@ -982,11 +959,7 @@ static VALUE fetch_field_direct(VALUE obj, VALUE nr)
     max = mysql_num_fields(res);
     n = NUM2INT(nr);
     if (n >= max)
-#if RUBY_VERSION_CODE < 160
-        Raise(eMysql, "%d: out of range (max: %d)", n, max-1);
-#else
         rb_raise(eMysql, "%d: out of range (max: %d)", n, max-1);
-#endif
 #if MYSQL_VERSION_ID >= 32226
     return make_field_obj(mysql_fetch_field_direct(res, n));
 #else
@@ -2269,4 +2242,6 @@ void Init_mysql(void)
     rb_define_method(eMysql, "sqlstate", error_sqlstate, 0);
 
     /* Mysql::Error constant */
+#define rb_define_mysql_const(s) rb_define_const(eMysql, #s, INT2NUM(s))
+#include "error_const.h"
 }
