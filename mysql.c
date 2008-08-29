@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c 229 2008-06-20 07:44:04Z tommy $
+ *	$Id: mysql.c 232 2008-08-19 14:48:50Z tommy $
  */
 
 #include <ruby.h>
@@ -248,6 +248,7 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
     pp = NILorINT(port);
     s = NILorSTRING(sock);
 
+    rb_thread_stop_timer();
     obj = Data_Make_Struct(klass, struct mysql, 0, free_mysql, myp);
 #if MYSQL_VERSION_ID >= 32200
     mysql_init(&myp->handler);
@@ -257,7 +258,11 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
 #else
     if (mysql_real_connect(&myp->handler, h, u, p, pp, s) == NULL)
 #endif
-	mysql_raise(&myp->handler);
+    {
+        rb_thread_start_timer();
+        mysql_raise(&myp->handler);
+    }
+    rb_thread_start_timer();
 
     myp->handler.reconnect = 0;
     myp->connection = Qtrue;
@@ -321,8 +326,12 @@ static VALUE real_connect2(int argc, VALUE* argv, VALUE obj)
     pp = NILorINT(port);
     s = NILorSTRING(sock);
 
-    if (mysql_real_connect(m, h, u, p, d, pp, s, f) == NULL)
-	mysql_raise(m);
+    rb_thread_stop_timer();
+    if (mysql_real_connect(m, h, u, p, d, pp, s, f) == NULL) {
+        rb_thread_start_timer();
+        mysql_raise(m);
+    }
+    rb_thread_start_timer();
     m->reconnect = 0;
     GetMysqlStruct(obj)->connection = Qtrue;
 
