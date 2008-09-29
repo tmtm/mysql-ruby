@@ -1,5 +1,5 @@
 /*	ruby mysql module
- *	$Id: mysql.c.in 224 2008-06-17 06:55:44Z tommy $
+ *	$Id: mysql.c.in 236 2008-09-29 14:53:08Z tommy $
  */
 
 #include "ruby.h"
@@ -14,7 +14,7 @@
 #include <mysql/mysqld_error.h>
 #endif
 
-#define MYSQL_RUBY_VERSION 20706
+#define MYSQL_RUBY_VERSION 20707
 
 #define GC_STORE_RESULT_LIMIT 20
 
@@ -253,6 +253,7 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
     pp = NILorINT(port);
     s = NILorSTRING(sock);
 
+    rb_thread_stop_timer();
     obj = Data_Make_Struct(klass, struct mysql, 0, free_mysql, myp);
 #if MYSQL_VERSION_ID >= 32200
     mysql_init(&myp->handler);
@@ -262,8 +263,11 @@ static VALUE real_connect(int argc, VALUE* argv, VALUE klass)
 #else
     if (mysql_real_connect(&myp->handler, h, u, p, pp, s) == NULL)
 #endif
-	mysql_raise(&myp->handler);
-
+    {
+        rb_thread_start_timer();
+        mysql_raise(&myp->handler);
+    }
+    rb_thread_start_timer();
     myp->handler.reconnect = 0;
     myp->connection = Qtrue;
     myp->query_with_result = Qtrue;
@@ -326,8 +330,12 @@ static VALUE real_connect2(int argc, VALUE* argv, VALUE obj)
     pp = NILorINT(port);
     s = NILorSTRING(sock);
 
-    if (mysql_real_connect(m, h, u, p, d, pp, s, f) == NULL)
-	mysql_raise(m);
+    rb_thread_stop_timer();
+    if (mysql_real_connect(m, h, u, p, d, pp, s, f) == NULL) {
+        rb_thread_start_timer();
+        mysql_raise(m);
+    }
+    rb_thread_start_timer();
     m->reconnect = 0;
     GetMysqlStruct(obj)->connection = Qtrue;
 
@@ -1363,9 +1371,9 @@ static VALUE stmt_execute(int argc, VALUE *argv, VALUE obj)
                 break;
             case T_STRING:
                 s->param.bind[i].buffer_type = MYSQL_TYPE_STRING;
-                s->param.bind[i].buffer = RSTRING_PTR(argv[i]);
-                s->param.bind[i].buffer_length = RSTRING_LEN(argv[i]);
-                s->param.length[i] = RSTRING_LEN(argv[i]);
+                s->param.bind[i].buffer = RSTRING(argv[i])->ptr;
+                s->param.bind[i].buffer_length = RSTRING(argv[i])->len;
+                s->param.length[i] = RSTRING(argv[i])->len;
                 s->param.bind[i].length = &(s->param.length[i]);
                 break;
             default:

@@ -1,5 +1,5 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- $Id: README.html 220 2008-06-17 05:45:58Z tommy $ -->
+<!-- $Id: README.html 237 2008-09-29 15:03:04Z tommy $ -->
 <html>
   <head>
     <meta http-equiv="content-style-type" content="text/css">
@@ -23,7 +23,7 @@
     <h2>Requirement</h2>
     <ul>
       <li>MySQL 5.0.51a
-      <li>Ruby 1.8.6
+      <li>Ruby 1.8.5-1.8.7
     </ul>
     <p>
       The module may work for other versions, but that has not been verified.
@@ -84,7 +84,7 @@
       2nd:
     </p>
     <pre class="code">
-% ruby ./test.rb [<i>hostname</i> [<i>user</i> [<i>passwd</i> [<i>dbname</i> [<i>port</i> [<i>socket</i> [<i>flag</i>]]]]]]]
+% ruby ./test.rb -- [<i>hostname</i> [<i>user</i> [<i>passwd</i> [<i>dbname</i> [<i>port</i> [<i>socket</i> [<i>flag</i>]]]]]]]
 </pre>
 
     <p>
@@ -814,6 +814,22 @@ st.close
 
     <h2>History</h2>
     <dl>
+      <dt>2008-09-29
+      <dd>
+        version 2.8<br>
+        version 2.7.7
+        <ul>
+          <li>When connecting to MySQL, EINTR is occurred sometimes ([ruby-dev:31842])
+          <li>MySQL/Ruby 2.7.* can not be compiled on Ruby 1.8.5.
+        </ul>
+
+      <dt>2008-06-20
+      <dd>
+        version 2.8pre4<br>
+        <ul>
+          <li>[ruby-dev:35152]
+        </ul>
+
       <dt>2008-06-17
       <dd>
         version 2.8pre3<br>
@@ -1065,7 +1081,7 @@ st.close
     <address><a href="mailto:tommy@tmtm.org">TOMITA Masahiro</a></address>
 <!-- Created: Sun Aug 29 11:52:09 JST 2004 -->
 <!-- hhmts start -->
-Last modified: Tue Jun 17 14:45:06 JST 2008
+Last modified: Tue Sep 30 00:01:12 JST 2008
 <!-- hhmts end -->
   </body>
 </html>

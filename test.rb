@@ -1,5 +1,5 @@
 #!/usr/local/bin/ruby
-# $Id: test.rb 220 2008-06-17 05:45:58Z tommy $
+# $Id: test.rb 236 2008-09-29 14:53:08Z tommy $
 
 require "test/unit"
 require "./mysql.o"
@@ -16,7 +16,7 @@ class TC_Mysql < Test::Unit::TestCase
   end
 
   def test_version()
-    assert_equal(20706, Mysql::VERSION)
+    assert_equal(20707, Mysql::VERSION)
   end
 
   def test_init()
