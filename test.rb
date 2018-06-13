@@ -1,4 +1,5 @@
 #!/usr/local/bin/ruby
+# encoding: binary
 # $Id: test.rb 250 2010-02-11 10:42:54Z tommy $
 
 require "test/unit"
@@ -70,7 +71,7 @@ class TC_Mysql < Test::Unit::TestCase
     assert_equal(@m, @m.options(Mysql::OPT_WRITE_TIMEOUT, 10)) if defined? Mysql::OPT_WRITE_TIMEOUT
 #   assert_equal(@m, @m.options(Mysql::READ_DEFAULT_FILE, "/tmp/hoge"))
     assert_equal(@m, @m.options(Mysql::READ_DEFAULT_GROUP, "test"))
-    assert_equal(@m, @m.options(Mysql::SECURE_AUTH, true)) if defined? Mysql::SECURE_AUTH
+#   assert_equal(@m, @m.options(Mysql::SECURE_AUTH, true)) if defined? Mysql::SECURE_AUTH
 #   assert_equal(@m, @m.options(Mysql::SET_CHARSET_DIR, "??"))
     assert_equal(@m, @m.options(Mysql::SET_CHARSET_NAME, "latin1"))
     assert_equal(@m, @m.options(Mysql::SET_CLIENT_IP, "127.0.0.1")) if defined? Mysql::SET_CLIENT_IP
@@ -307,7 +308,7 @@ class TC_MysqlRes < Test::Unit::TestCase
     assert_equal(Mysql::Field::TYPE_LONG, f.type)
     assert_equal(11, f.length)
     assert_equal(1, f.max_length)
-    assert_equal(Mysql::Field::NUM_FLAG|Mysql::Field::PRI_KEY_FLAG|Mysql::Field::PART_KEY_FLAG|Mysql::Field::NOT_NULL_FLAG, f.flags)
+    assert_equal(Mysql::Field::NUM_FLAG|Mysql::Field::PRI_KEY_FLAG|Mysql::Field::PART_KEY_FLAG|Mysql::Field::NOT_NULL_FLAG|Mysql::Field::NO_DEFAULT_VALUE_FLAG, f.flags)
     assert_equal(0, f.decimals)
     f = @res.fetch_field
     assert_equal("str", f.name)
@@ -361,7 +362,7 @@ class TC_MysqlRes < Test::Unit::TestCase
       "type" => Mysql::Field::TYPE_LONG,
       "length" => 11,
       "max_length" => 1,
-      "flags" => Mysql::Field::NUM_FLAG|Mysql::Field::PRI_KEY_FLAG|Mysql::Field::PART_KEY_FLAG|Mysql::Field::NOT_NULL_FLAG,
+      "flags" => Mysql::Field::NUM_FLAG|Mysql::Field::PRI_KEY_FLAG|Mysql::Field::PART_KEY_FLAG|Mysql::Field::NOT_NULL_FLAG|Mysql::Field::NO_DEFAULT_VALUE_FLAG,
       "decimals" => 0,
     }
     assert_equal(h, f.hash)
@@ -448,6 +449,7 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
     @flag = flag.to_i
     @m = Mysql.new(@host, @user, @pass, @db, @port, @sock, @flag)
     @s = @m.stmt_init()
+    @m.query("set sql_mode=''")
   end
   def teardown()
     @s.close
@@ -536,18 +538,20 @@ class TC_MysqlStmt2 < Test::Unit::TestCase
     end
   end
 
-  def test_bind_result_fixnum()
-    if @m.server_version >= 40100 then
-      @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
-      @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
-      @s.prepare("select * from t")
-      @s.bind_result(Fixnum, Fixnum, Fixnum, Fixnum)
-      @s.execute
-      a = @s.fetch
-      if Mysql.client_version < 50000 then
-        assert_equal([123, 9, 1, 2005], a)
-      else
-        assert_equal([123, 9, 1, 20050802235011.0], a)
+  unless 1.class == Integer
+    def test_bind_result_fixnum()
+      if @m.server_version >= 40100 then
+        @m.query("create temporary table t (i int, c char(10), d double, t datetime)")
+        @m.query("insert into t values (123, '9abcdefg', 1.2345, 20050802235011)")
+        @s.prepare("select * from t")
+        @s.bind_result(Fixnum, Fixnum, Fixnum, Fixnum)
+        @s.execute
+        a = @s.fetch
+        if Mysql.client_version < 50000 then
+          assert_equal([123, 9, 1, 2005], a)
+        else
+          assert_equal([123, 9, 1, 20050802235011.0], a)
+        end
       end
     end
   end

@@ -1317,7 +1317,11 @@ static VALUE stmt_bind_result(int argc, VALUE *argv, VALUE obj)
 	}
 	else if (argv[i] == rb_cString)
 	    s->result.bind[i].buffer_type = MYSQL_TYPE_STRING;
-	else if (argv[i] == rb_cNumeric || argv[i] == rb_cInteger || argv[i] == rb_cFixnum)
+	else if (argv[i] == rb_cNumeric || argv[i] == rb_cInteger
+#ifndef RUBY_INTEGER_UNIFICATION
+                 || argv[i] == rb_cFixnum
+#endif
+                 )
 	    s->result.bind[i].buffer_type = MYSQL_TYPE_LONGLONG;
 	else if (argv[i] == rb_cFloat)
 	    s->result.bind[i].buffer_type = MYSQL_TYPE_DOUBLE;
@@ -2196,6 +2200,12 @@ void Init_mysql(void)
 #endif
 #ifdef SET_FLAG
     rb_define_const(cMysqlField, "SET_FLAG", INT2NUM(SET_FLAG));
+#endif
+#ifdef NO_DEFAULT_VALUE_FLAG
+    rb_define_const(cMysqlField, "NO_DEFAULT_VALUE_FLAG", INT2NUM(NO_DEFAULT_VALUE_FLAG));
+#endif
+#ifdef ON_UPDATE_NOW_FLAG
+    rb_define_const(cMysqlField, "ON_UPDATE_NOW_FLAG", INT2NUM(ON_UPDATE_NOW_FLAG));
 #endif
 #ifdef NUM_FLAG
     rb_define_const(cMysqlField, "NUM_FLAG", INT2NUM(NUM_FLAG));
