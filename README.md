@@ -1,6 +1,6 @@
 # MySQL/Ruby
 
-This is the <a href="http://www.mysql.com">MySQL</a> API module for Ruby.
+This is the [MySQL](http://www.mysql.com) API module for Ruby.
 It provides the same functions for Ruby programs that the MySQL C API provides for C programs.
 
 ## Requirement
@@ -10,17 +10,25 @@ It provides the same functions for Ruby programs that the MySQL C API provides f
 
 ## Installation
 
-```
-% ruby extconf.rb --with-mysql-dir=/usr/local/mysql
+Add this line to your application's Gemfile:
+
+```ruby
+gem 'mysql'
 ```
 
-Or
+And then execute:
 
 ```
-% ruby extconf.rb --with-mysql-config
+% bundle
 ```
 
-extconf.rb options:
+Or install it yourself as:
+
+```
+% gem install mysql -- --with-mysql-dir=/usr/local/mysql
+```
+
+available options:
 
 | option                                        | description
 |-----------------------------------------------|-------------------
@@ -28,24 +36,6 @@ extconf.rb options:
 | `--with-mysql-lib=dir`                        | MySQL library directory (default: `/usr/local/lib`)
 | `--with-mysql-dir=dir`                        | Same as `--with-mysql-include=dir/include --with-mysql-lib=dir/lib`
 | `--with-mysql-config[=/path/to/mysql_config]` | Get compile-parameter from `mysql_config` command
-
-And then execute:
-
-```
-% make
-```
-
-test:
-
-```
-% ruby ./test.rb -- hostname user passwd dbname port socket flag
-```
-
-If you get error like 'libmysqlclient not found' when testing, you need to specify the directory in which the library is located so that make can find it.
-
-```
-% env LD_RUN_PATH=[libmysqlclient.so directory] make
-```
 
 install:
 
@@ -63,6 +53,26 @@ my.query('insert into ...')
 my.query('select ...') do |res|
   ...
 end
+```
+
+## Development
+
+compile:
+
+```
+% ruby extconf.rb --with-mysql-dir=/usr/local/mysql
+```
+
+test:
+
+```
+% ruby ./test.rb -- hostname user passwd dbname port socket flag
+```
+
+If you get error like 'libmysqlclient not found' when testing, you need to specify the directory in which the library is located so that make can find it.
+
+```
+% env LD_RUN_PATH=[libmysqlclient.so directory] make
 ```
 
 ## Author
